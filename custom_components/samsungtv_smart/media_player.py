@@ -317,6 +317,13 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
 
         self._ws.register_new_token_callback(new_token_callback)
 
+        # rest api initialization
+        self._rest_api = SamsungTVAsyncRest(
+            host=self._host,
+            session=session,
+            timeout=DEFAULT_TIMEOUT,
+        )
+
         # upnp initialization
         self._upnp = SamsungUPnP(host=self._host, session=session)
 
@@ -512,8 +519,14 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
             return True
         return not self.hass.states.is_state(ext_entity, STATE_OFF)
 
-    def _check_status(self):
+    async def _check_status(self):
         """Check TV status with WS and others method to check power status."""
+
+        if self._get_device_spec("PowerState") is not None:
+            _LOGGER.debug("Checking if TV %s is on using device info", self._host)
+            # Ensure we get an updated value
+            info = await self._async_load_device_info(force=True)
+            return info is not None and info["device"]["PowerState"] == "on"
 
         result = self._ws.is_connected
         if result and self._st:
@@ -760,24 +773,20 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
             _LOGGER.warning("%s - Connection to SmartThings restored", self.entity_id)
         self._st_error_count = 0
 
-    async def _async_load_device_info(self) -> None:
+    async def _async_load_device_info(self, force: bool = False) -> dict[str, Any] | None:
         """Try to gather infos of this TV."""
-        if self._device_info is not None:
-            return
-
-        rest_api = SamsungTVAsyncRest(
-            host=self._host,
-            session=async_get_clientsession(self.hass),
-            timeout=DEFAULT_TIMEOUT,
-        )
+        if self._device_info is not None and not force:
+            return self._device_info
 
         try:
-            device_info: dict[str, Any] = await rest_api.async_rest_device_info()
+            device_info: dict[str, Any] = await self._rest_api.async_rest_device_info()
             _LOGGER.debug("Device info on %s is: %s", self._host, device_info)
             self._device_info = device_info
         except Exception as ex:  # pylint: disable=broad-except
-            _LOGGER.warning("Error retrieving device info on %s: %s", self._host, ex)
-            self._device_info = {}
+            _LOGGER.debug("Error retrieving device info on %s: %s", self._host, ex)
+            return None
+
+        return self._device_info
 
     @Throttle(MIN_TIME_BETWEEN_ST_UPDATE)
     async def _async_st_update(self, **kwargs) -> bool | None:
@@ -806,7 +815,7 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
             if (st_update := await self._async_st_update()) is not None:
                 st_error = not st_update
 
-        result = self._check_status()
+        result = await self._check_status()
         if not self._started_up or not result:
             use_mute_check = False
             self._fake_on = None
