@@ -9,7 +9,7 @@
     - Devices (all)
     - Installed Apps (all)
     - Locations (all)
-    - Apps (all)
+    - Applications (all)
     - Schedules (all)
     - Scenes (all)
 3. Click 'Generate token'. When the token is displayed, copy and save it somewhere safe (such as your keystore) as you will not be able to retrieve it again.
