@@ -17,6 +17,8 @@ API_DEVICES = f"{API_BASEURL}/devices"
 
 DEVICE_TYPE_OCF = "OCF"
 DEVICE_TYPE_NAME_TV = "Samsung OCF TV"
+DEVICE_TYPE_NAMES = ["Samsung OCF TV", "x.com.st.d.monitor"]
+
 
 COMMAND_POWER_OFF = {
     "capability": "switch",
@@ -337,7 +339,7 @@ class SmartThingsTV:
                 if device_label:
                     if label != device_label:
                         continue
-                elif dev.get("deviceTypeName", "") != DEVICE_TYPE_NAME_TV:
+                elif dev.get("deviceTypeName", "") not in DEVICE_TYPE_NAMES:
                     continue
 
                 result[device_id] = {
