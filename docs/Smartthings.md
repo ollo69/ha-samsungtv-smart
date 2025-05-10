@@ -7,11 +7,12 @@
 1. Log into the [personal access tokens page](https://account.smartthings.com/tokens) and click '[Generate new token](https://account.smartthings.com/tokens/new)'
 2. Enter a token name (can be whatever you want), for example, 'Home Assistant' and select the following authorized scopes:
     - Devices (all)
-    - Installed Apps (all)
-    - Locations (all)
-    - Apps (all)
-    - Schedules (all)
+    - Installed Applications (all)
     - Scenes (all)
+    - Applications (all)
+    - Locations (all)
+    - Schedules (all)
+    
 3. Click 'Generate token'. When the token is displayed, copy and save it somewhere safe (such as your keystore) as you will not be able to retrieve it again.
 
 ### Configure Home Assistant
