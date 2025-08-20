@@ -1,6 +1,7 @@
 {
   "domain": "samsungtv_smart",
   "name": "SamsungTV Smart",
+  "after_dependencies": ["smartthings"],
   "codeowners": ["@jaruba", "@ollo69", "@screwdgeh"],
   "config_flow": true,
   "dependencies": ["http"],
@@ -14,5 +15,5 @@
     "aiofiles>=0.8.0",
     "casttube>=0.2.1"
   ],
-  "version": "0.13.5"
+  "version": "0.13.6"
 }

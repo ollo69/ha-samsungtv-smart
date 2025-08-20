@@ -15,9 +15,11 @@ import voluptuous as vol
 from websocket import WebSocketException
 
 from homeassistant.components.http import StaticPathConfig
+from homeassistant.components.smartthings.const import DOMAIN as ST_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_DEVICE_ID,
+    CONF_ACCESS_TOKEN,
     CONF_API_KEY,
     CONF_BROADCAST_ADDRESS,
     CONF_DEVICE_ID,
@@ -300,6 +302,19 @@ def _migrate_entry_unique_id(hass: HomeAssistant, entry: ConfigEntry) -> None:
         "Migrated entry unique id from %s to %s", entry.unique_id, new_unique_id
     )
     hass.config_entries.async_update_entry(entry, unique_id=new_unique_id)
+
+
+@callback
+def get_smartthing_api_key(hass: HomeAssistant) -> str | None:
+    """Get the smartthing integration configured API key."""
+    entries_list = hass.config_entries.async_entries(ST_DOMAIN, False, False)
+    if not entries_list:
+        return None
+
+    config_data = entries_list[0].data
+    if CONF_TOKEN not in config_data:
+        return None
+    return config_data[CONF_TOKEN].get(CONF_ACCESS_TOKEN)
 
 
 async def _register_logo_paths(hass: HomeAssistant) -> str | None:

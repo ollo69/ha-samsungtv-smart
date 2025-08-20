@@ -28,8 +28,8 @@ class PowerOnMethod(Enum):
 
 DOMAIN = "samsungtv_smart"
 
-MIN_HA_MAJ_VER = 2024
-MIN_HA_MIN_VER = 7
+MIN_HA_MAJ_VER = 2025
+MIN_HA_MIN_VER = 6
 __min_ha_version__ = f"{MIN_HA_MAJ_VER}.{MIN_HA_MIN_VER}.0"
 
 DATA_CFG = "cfg"
@@ -63,6 +63,7 @@ CONF_SYNC_TURN_ON = "sync_turn_on"
 CONF_TOGGLE_ART_MODE = "toggle_art_mode"
 CONF_USE_LOCAL_LOGO = "use_local_logo"
 CONF_USE_MUTE_CHECK = "use_mute_check"
+CONF_USE_ST_INT_API_KEY = "use_st_int_api_key"
 CONF_USE_ST_CHANNEL_INFO = "use_st_channel_info"
 CONF_USE_ST_STATUS_INFO = "use_st_status_info"
 CONF_WOL_REPEAT = "wol_repeat"
