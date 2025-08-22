@@ -773,7 +773,9 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
             _LOGGER.warning("%s - Connection to SmartThings restored", self.entity_id)
         self._st_error_count = 0
 
-    async def _async_load_device_info(self, force: bool = False) -> dict[str, Any] | None:
+    async def _async_load_device_info(
+        self, force: bool = False
+    ) -> dict[str, Any] | None:
         """Try to gather infos of this TV."""
         if self._device_info is not None and not force:
             return self._device_info
