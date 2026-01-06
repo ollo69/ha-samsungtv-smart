@@ -8,7 +8,7 @@ To use SmartThings feature in integration you must provide authentication inform
 
 #### Method 1: Use native SmartThings integration (suggested)
 
-Configure on your HA instance the [native HA SmartThings integration](https://www.home-assistant.io/integrations/smartthings/). In this way the API key to access to SmartThings will be automatically provided to `Samsung TV Smart` integration and you don't have to do any other steps. Just remenber to select the `SmartThings entry used to provide SmartThings credential` in Samsung TV Smart configuration flow.
+Configure on your HA instance the [native HA SmartThings integration](https://www.home-assistant.io/integrations/smartthings/). In this way the API key to access to SmartThings will be automatically provided to `Samsung TV Smart` integration and you don't have to do any other steps. Just remember to select the `SmartThings entry used to provide SmartThings credential` in Samsung TV Smart configuration flow.
 
 
 #### Method 2: Create personal access token (deprecated)
