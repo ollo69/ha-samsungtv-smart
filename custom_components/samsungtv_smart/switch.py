@@ -1,5 +1,4 @@
 """Samsung Frame TV Art Mode switch entity."""
-"""Samsung Frame TV Art Mode switch entity."""
 
 from __future__ import annotations
 
