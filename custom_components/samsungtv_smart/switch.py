@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity, SwitchDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_HOST,
-    CONF_MAC,
+    CONF_ID,
     CONF_NAME,
     CONF_PORT,
     CONF_TOKEN,
@@ -19,21 +18,15 @@ from homeassistant.const import (
     STATE_OFF,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.event import async_track_state_change_event
+from pysmartthings import Capability, Command
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers import entity_registry as er
 
-from pysmartthings import Attribute, Capability, Command
-
 from .api.art import SamsungTVAsyncArt
 from .const import (
-    AUTH_METHOD_OAUTH,
-    AUTH_METHOD_ST_ENTRY,
-    CONF_API_KEY,
-    CONF_AUTH_METHOD,
-    CONF_DEVICE_ID,
-    CONF_OAUTH_TOKEN,
     CONF_WS_NAME,
     DATA_ART_API,
     DATA_CFG,
@@ -43,10 +36,9 @@ from .const import (
 )
 from . import async_get_samsungtv_api_key
 
-# SmartThings component
-COMPONENT_MAIN = "main"
-
 _LOGGER = logging.getLogger(__name__)
+
+COMPONENT_MAIN = "main"  # SmartThings component
 
 # Time to wait for TV to be ready after WOL
 TV_STARTUP_DELAY = 8  # seconds
@@ -63,43 +55,42 @@ async def async_setup_entry(
     port = config.get(CONF_PORT, DEFAULT_PORT)
     token = config.get(CONF_TOKEN)
     ws_name = config.get(CONF_WS_NAME, "HomeAssistant")
-    
+
+    # Get device unique ID - must match entity.py logic for device grouping
+    device_unique_id = config.get(CONF_ID, entry.entry_id)
+
     # Get device name from config or entry title, fallback to host
     device_name = config.get(CONF_NAME) or entry.title or host
-    
-    # Get SmartThings config - use async_get_samsungtv_api_key for OAuth support
+
+    session = async_get_clientsession(hass)
+
+    # SmartThings config (needed for power off via Command.OFF)
+    from .const import CONF_API_KEY, CONF_DEVICE_ID, CONF_AUTH_METHOD, CONF_OAUTH_TOKEN, AUTH_METHOD_OAUTH
     api_key = config.get(CONF_API_KEY)
     device_id = config.get(CONF_DEVICE_ID)
     auth_method = config.get(CONF_AUTH_METHOD)
-    
-    # For OAuth, get token from oauth_token if api_key is not available
     if auth_method == AUTH_METHOD_OAUTH and not api_key:
         oauth_token = config.get(CONF_OAUTH_TOKEN)
         if oauth_token and isinstance(oauth_token, dict):
             api_key = oauth_token.get("access_token")
-            _LOGGER.debug("Power switch using OAuth token")
-    
-    session = async_get_clientsession(hass)
-    
+
     entities = []
-    
-    # Create Power Switch if SmartThings is configured
+
+    # Create Power Switch if SmartThings is configured (needed for reliable turn_off)
     if api_key and device_id:
-        try:
-            entities.append(
-                SamsungTVPowerSwitch(
-                    hass=hass,
-                    entry=entry,
-                    device_id=device_id,
-                    device_name=device_name,
-                    session=session,
-                )
+        entities.append(
+            SamsungTVPowerSwitch(
+                hass=hass,
+                entry=entry,
+                device_id=device_id,
+                device_name=device_name,
+                session=session,
+                device_unique_id=device_unique_id,
             )
-            _LOGGER.info("Power switch (SmartThings) created for %s", device_name)
-        except Exception as ex:
-            _LOGGER.warning("Could not setup Power switch via SmartThings: %s", ex)
+        )
+        _LOGGER.debug("Power switch created for %s", device_name)
     else:
-        _LOGGER.debug("SmartThings not configured, Power switch not created")
+        _LOGGER.debug("SmartThings not configured, power switch not created for %s", device_name)
     
     # Check if art_api already exists (created by sensor platform)
     art_api = hass.data[DOMAIN][entry.entry_id].get(DATA_ART_API)
@@ -132,11 +123,11 @@ async def async_setup_entry(
             # Store for later use
             hass.data[DOMAIN][entry.entry_id][DATA_ART_API] = art_api
             # Add Art Mode switch
-            entities.append(FrameArtModeSwitch(hass, entry, art_api, device_name, host))
+            entities.append(FrameArtModeSwitch(hass, entry, art_api, device_name, host, device_unique_id))
             _LOGGER.info("Frame Art Mode switch created for %s", device_name)
     else:
         # Art API exists, so Frame TV is supported
-        entities.append(FrameArtModeSwitch(hass, entry, art_api, device_name, host))
+        entities.append(FrameArtModeSwitch(hass, entry, art_api, device_name, host, device_unique_id))
         _LOGGER.info("Frame Art Mode switch created for %s", device_name)
     
     # Create the switch entities
@@ -159,6 +150,7 @@ class FrameArtModeSwitch(SwitchEntity):
         art_api: SamsungTVAsyncArt,
         device_name: str,
         host: str,
+        device_unique_id: str,
     ) -> None:
         """Initialize the Art Mode switch."""
         self._hass = hass
@@ -166,6 +158,7 @@ class FrameArtModeSwitch(SwitchEntity):
         self._art_api = art_api
         self._device_name = device_name
         self._host = host
+        self._device_unique_id = device_unique_id
         self._attr_unique_id = f"{entry.entry_id}_art_mode_switch"
         self._attr_is_on = None
         self._available = True
@@ -176,7 +169,7 @@ class FrameArtModeSwitch(SwitchEntity):
     def device_info(self) -> DeviceInfo:
         """Return device info to link this entity to the TV device."""
         return DeviceInfo(
-            identifiers={(DOMAIN, self._entry.entry_id)},
+            identifiers={(DOMAIN, self._device_unique_id)},
             name=self._device_name,
         )
 
@@ -425,7 +418,12 @@ class FrameArtModeSwitch(SwitchEntity):
 
 
 class SamsungTVPowerSwitch(SwitchEntity):
-    """Switch for turning Samsung TV on/off via SmartThings API."""
+    """Switch for turning Samsung TV on/off.
+
+    Delegates all commands to the media_player entity so there is a single
+    source of truth for the TV power state (WOL, WebSocket, SmartThings are
+    all handled there).  This switch is a pure UI convenience wrapper.
+    """
 
     _attr_device_class = SwitchDeviceClass.OUTLET
     _attr_has_entity_name = True
@@ -437,57 +435,68 @@ class SamsungTVPowerSwitch(SwitchEntity):
         entry: ConfigEntry,
         device_id: str,
         device_name: str,
-        session,  # aiohttp session
+        session,
+        device_unique_id: str,
     ) -> None:
         """Initialize the power switch."""
         self.hass = hass
         self._entry = entry
-        self._session = session
         self._device_id = device_id
+        self._session = session
         self._device_name = device_name
+        self._device_unique_id = device_unique_id
         self._attr_unique_id = f"{entry.entry_id}_power"
-        self._attr_is_on = False
-        self._available = True
-        
-        # Command pending tracking to prevent state flicker
-        self._last_command_time: float | None = None
-        self._last_command_state: bool | None = None
+        self._media_player_entity_id: str | None = None
 
     async def _get_st_client(self):
-        """Get SmartThings client with current token from config entry.
-        
-        This ensures the client always uses the latest token after OAuth refresh.
-        """
+        """Get SmartThings client with current (possibly refreshed) token."""
         from pysmartthings import SmartThings
-        
-        # Get current token from entry data (may have been refreshed by media_player)
+        from .const import CONF_API_KEY, CONF_OAUTH_TOKEN, CONF_AUTH_METHOD, AUTH_METHOD_OAUTH
+
         api_key = await async_get_samsungtv_api_key(self.hass, self._entry)
-        
         if not api_key:
-            # Fallback to direct config
             config = self.hass.data[DOMAIN][self._entry.entry_id][DATA_CFG]
             api_key = config.get(CONF_API_KEY)
             if not api_key:
                 oauth_token = config.get(CONF_OAUTH_TOKEN)
                 if oauth_token and isinstance(oauth_token, dict):
                     api_key = oauth_token.get("access_token")
-        
         if not api_key:
-            _LOGGER.warning("No SmartThings API key available for power switch")
+            _LOGGER.warning("Power switch: no SmartThings API key available")
             return None
-            
         st_client = SmartThings(session=self._session)
         st_client.authenticate(api_key)
         return st_client
+
+    def _get_media_player_entity_id(self) -> str | None:
+        """Get the media_player entity_id for this TV (cached after first lookup)."""
+        if self._media_player_entity_id:
+            return self._media_player_entity_id
+
+        entity_registry = er.async_get(self.hass)
+        for entity in entity_registry.entities.values():
+            if (
+                entity.config_entry_id == self._entry.entry_id
+                and entity.domain == "media_player"
+            ):
+                self._media_player_entity_id = entity.entity_id
+                return entity.entity_id
+
+        return None
+
+    def _get_media_player_state(self):
+        """Return the current HA state object of the media_player, or None."""
+        entity_id = self._get_media_player_entity_id()
+        if not entity_id:
+            return None
+        return self.hass.states.get(entity_id)
 
     @property
     def device_info(self) -> DeviceInfo:
         """Return device info."""
         return DeviceInfo(
-            identifiers={(DOMAIN, self._entry.entry_id)},
+            identifiers={(DOMAIN, self._device_unique_id)},
             name=self._device_name,
-            manufacturer="Samsung",
-            model="Smart TV",
         )
 
     @property
@@ -497,144 +506,93 @@ class SamsungTVPowerSwitch(SwitchEntity):
 
     @property
     def available(self) -> bool:
-        """Return if entity is available."""
-        return self._available
+        """Available unless the media_player is truly unreachable."""
+        state = self._get_media_player_state()
+        if state is None:
+            return False
+        return state.state != "unavailable"
+
+    @property
+    def is_on(self) -> bool | None:
+        """TV is physically on if media_player is on OR Art Mode is active.
+
+        A Frame TV in Art Mode reports media_player state as "off", but the
+        screen is physically on.  We treat that as on so that automations
+        reading this switch never send a spurious turn_on to an already-lit TV.
+        """
+        state = self._get_media_player_state()
+        if state is None:
+            return None
+        # Clearly on (watching TV, idle, paused...)
+        if state.state not in (STATE_OFF, "unavailable", "unknown"):
+            return True
+        # media_player says "off" — but Art Mode may be active
+        if state.state == STATE_OFF:
+            return state.attributes.get("art_mode_status") == "on"
+        return False
 
     @property
     def icon(self) -> str:
         """Return the icon."""
-        return "mdi:power" if self._attr_is_on else "mdi:power-off"
+        return "mdi:power" if self.is_on else "mdi:power-off"
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the TV on via SmartThings API."""
-        try:
-            st_client = await self._get_st_client()
-            if not st_client:
-                _LOGGER.error("Cannot turn on TV: SmartThings client not available")
-                return
-                
-            # Use Command.ON constant (uppercase), not Command(...)
-            await st_client.execute_device_command(
-                self._device_id,
-                Capability.SWITCH,
-                Command.ON,
-                COMPONENT_MAIN
-            )
-            
-            # Track command to prevent state flicker
-            self._last_command_time = time.time()
-            self._last_command_state = True
-            
-            # Set state immediately for responsive UI
-            self._attr_is_on = True
-            self._available = True
-            self.async_write_ha_state()
-            _LOGGER.debug("Power switch turned on via SmartThings")
-            
-            # Wait longer for SmartThings Cloud to update
-            await asyncio.sleep(5)
-            await self.async_update()
-            
-        except Exception as ex:
-            _LOGGER.error("Error turning on TV via SmartThings: %s", ex)
-            self._available = False
-            self.async_write_ha_state()
+        """Turn the TV on — delegates to media_player.turn_on."""
+        entity_id = self._get_media_player_entity_id()
+        if not entity_id:
+            _LOGGER.warning("Power switch: media_player entity not found for %s", self._device_name)
+            return
+
+        _LOGGER.debug("Power switch: delegating turn_on to %s", entity_id)
+        await self.hass.services.async_call(
+            "media_player",
+            "turn_on",
+            {"entity_id": entity_id},
+            blocking=True,
+        )
+        # State will update automatically when media_player changes
+        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn the TV off via SmartThings API."""
+        """Turn the TV off via SmartThings Command.OFF.
+
+        We use SmartThings directly here (not media_player.turn_off) because
+        SmartThings sends a hardware-level power-off signal that works
+        regardless of the TV current state — including when Art Mode is active
+        and media_player reports state "off" (which would make a plain
+        media_player.turn_off a no-op).
+        """
         try:
             st_client = await self._get_st_client()
             if not st_client:
-                _LOGGER.error("Cannot turn off TV: SmartThings client not available")
+                _LOGGER.error("Power switch: cannot turn off — SmartThings client unavailable")
                 return
-                
-            # Use Command.OFF constant (uppercase), not Command(...)
+
             await st_client.execute_device_command(
                 self._device_id,
                 Capability.SWITCH,
                 Command.OFF,
-                COMPONENT_MAIN
+                COMPONENT_MAIN,
             )
-            
-            # Track command to prevent state flicker
-            self._last_command_time = time.time()
-            self._last_command_state = False
-            
-            # Set state immediately for responsive UI
             self._attr_is_on = False
-            self._available = True
             self.async_write_ha_state()
-            _LOGGER.debug("Power switch turned off via SmartThings")
-            
-            # Wait longer for SmartThings Cloud to update
-            await asyncio.sleep(5)
-            await self.async_update()
-            
+            _LOGGER.debug("Power switch: TV turned off via SmartThings")
         except Exception as ex:
-            _LOGGER.error("Error turning off TV via SmartThings: %s", ex)
-            self._available = False
-            self.async_write_ha_state()
+            _LOGGER.error("Power switch: error turning off TV: %s", ex)
 
-    async def async_update(self) -> None:
-        """Update the switch state from SmartThings."""
-        try:
-            st_client = await self._get_st_client()
-            if not st_client:
-                self._available = False
-                return
-                
-            components = await st_client.get_device_status(self._device_id)
-            
-            if (
-                "main" in components
-                and "switch" in components["main"]
-                and "switch" in components["main"]["switch"]
-            ):
-                switch_status = components["main"]["switch"]["switch"]
-                new_state = switch_status.value == "on"
-                
-                # Check if we recently sent a command
-                if (
-                    self._last_command_time is not None
-                    and self._last_command_state is not None
-                ):
-                    time_since_command = time.time() - self._last_command_time
-                    
-                    # If less than 10 seconds since command and state contradicts expected state
-                    if time_since_command < 10 and new_state != self._last_command_state:
-                        _LOGGER.debug(
-                            "Power switch: Ignoring contradictory update from SmartThings "
-                            "(expected: %s, received: %s, time since command: %.1fs)",
-                            self._last_command_state,
-                            new_state,
-                            time_since_command,
-                        )
-                        # Keep the command state, don't update
-                        return
-                    
-                    # If more than 10 seconds, clear command tracking
-                    if time_since_command >= 10:
-                        self._last_command_time = None
-                        self._last_command_state = None
-                
-                # Update state
-                self._attr_is_on = new_state
-                self._available = True
-                _LOGGER.debug(
-                    "Power switch state updated from SmartThings: %s",
-                    self._attr_is_on,
-                )
-            else:
-                _LOGGER.debug("Switch capability not available for %s", self._device_name)
-                self._available = False
-        except Exception as ex:
-            _LOGGER.warning("Error updating power switch state from SmartThings: %s", ex)
-            self._available = False
+    @callback
+    def _handle_media_player_state_change(self, event) -> None:
+        """React to media_player state changes and push update immediately."""
+        self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:
-        """Run when entity is added to Home Assistant."""
-        # Schedule initial state update
-        self.hass.async_create_background_task(
-            self.async_update(),
-            f"power_switch_initial_update_{self._entry.entry_id}",
-        )
+        """Subscribe to media_player state changes when added to HA."""
+        entity_id = self._get_media_player_entity_id()
+        if entity_id:
+            self.async_on_remove(
+                async_track_state_change_event(
+                    self.hass,
+                    [entity_id],
+                    self._handle_media_player_state_change,
+                )
+            )
