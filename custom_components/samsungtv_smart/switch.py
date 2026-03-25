@@ -535,10 +535,14 @@ class SamsungTVPowerSwitch(SwitchEntity):
         """Subscribe to media_player state changes when added to HA."""
         entity_id = self._get_media_player_entity_id()
         if entity_id:
+            @callback
+            def _filter(event):
+                return event.data.get("entity_id") == entity_id
+
             self.async_on_remove(
                 self.hass.bus.async_listen(
                     "state_changed",
                     self._handle_media_player_state_change,
-                    event_filter=lambda e: e.data.get("entity_id") == entity_id,
+                    event_filter=_filter,
                 )
             )
