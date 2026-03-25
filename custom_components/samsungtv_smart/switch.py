@@ -462,7 +462,7 @@ class SamsungTVPowerSwitch(SwitchEntity):
 
     @property
     def available(self) -> bool:
-        """Mirrors the media_player availability."""
+        """Available unless the media_player is truly unreachable."""
         state = self._get_media_player_state()
         if state is None:
             return False
@@ -470,11 +470,22 @@ class SamsungTVPowerSwitch(SwitchEntity):
 
     @property
     def is_on(self) -> bool | None:
-        """Mirrors the media_player power state."""
+        """TV is physically on if media_player is on OR Art Mode is active.
+
+        A Frame TV in Art Mode reports media_player state as "off", but the
+        screen is physically on.  We treat that as on so that automations
+        reading this switch never send a spurious turn_on to an already-lit TV.
+        """
         state = self._get_media_player_state()
         if state is None:
             return None
-        return state.state not in (STATE_OFF, "unavailable", "unknown")
+        # Clearly on (watching TV, idle, paused...)
+        if state.state not in (STATE_OFF, "unavailable", "unknown"):
+            return True
+        # media_player says "off" — but Art Mode may be active
+        if state.state == STATE_OFF:
+            return state.attributes.get("art_mode_status") == "on"
+        return False
 
     @property
     def icon(self) -> str:
