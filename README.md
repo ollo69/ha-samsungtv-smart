@@ -1,575 +1,470 @@
-# Samsung TV Smart - Frame Art Edition
+# SamsungTV Smart — Enhanced Fork
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-[![GitHub Release](https://img.shields.io/github/release/TheFab21/ha-samsungtv-smart.svg)](https://github.com/TheFab21/ha-samsungtv-smart/releases)
+[![Version](https://img.shields.io/badge/version-6.3.2-blue.svg)](https://github.com)
+[![HA Version](https://img.shields.io/badge/Home%20Assistant-%3E%3D2025.6.0-green.svg)](https://www.home-assistant.io)
+[![License: LGPL v2.1](https://img.shields.io/badge/License-LGPL%20v2.1-yellow.svg)](https://www.gnu.org/licenses/lgpl-2.1)
 
-📺 Home Assistant integration for Samsung Smart TVs with **enhanced Frame TV Art Mode support** and **OAuth2 authentication**.
+A custom integration for Home Assistant to control Samsung Smart TVs (Tizen OS), based on the excellent work of [ollo69/ha-samsungtv-smart](https://github.com/ollo69/ha-samsungtv-smart).
 
-This is a fork of [ollo69/ha-samsungtv-smart](https://github.com/ollo69/ha-samsungtv-smart) with significant improvements for Samsung Frame TV users.
-
----
-
-## ✨ What's New in This Fork
-
-### 🔐 OAuth2 Authentication (No More PAT Expiration!)
-
-The original integration uses Personal Access Tokens (PAT) that expire after a few months, requiring manual renewal. This fork implements **full OAuth2 authentication** with:
-
-- **Automatic token refresh** - Tokens are refreshed 5 minutes before expiration
-- **Race condition protection** - Global lock prevents concurrent refresh attempts
-- **24-hour token validity** - SmartThings OAuth tokens last 24 hours with automatic renewal
-- **No more manual PAT renewal** - Set it and forget it!
-
-### 🖼️ Enhanced Frame TV Art Mode
-
-Complete control over your Samsung Frame TV's Art Mode:
-
-- **Art Mode Switch** - Dedicated switch entity with retry logic
-- **Frame Art Sensor** - Real-time artwork tracking with thumbnail support
-- **Slideshow Automation** - Configure automatic artwork rotation
-- **Matte Control** - Change frame styles and colors
-- **Thumbnail Management** - Download and cache artwork thumbnails locally
-- **Orphan Cleanup** - Automatically remove thumbnails for deleted favorites
-
-### 🔧 Technical Improvements
-
-- **WebSocket Auto-Reconnection** - Automatically reconnects when TV closes connection
-- **pysmartthings v6.0+ Compatibility** - Updated for latest SmartThings library
-- **Improved Error Handling** - Better logging and retry mechanisms
-- **SmartThings Illuminance Sensor** - Ambient light sensor support
-- **Brightness Intensity Sensor** - Art Mode brightness tracking
+This fork brings improved WebSocket stability, full Samsung Frame TV Art Mode support, and OAuth2 authentication for SmartThings.
 
 ---
 
-## 📋 Requirements
+## Table of Contents
 
-- Samsung Smart TV (2016+ models)
-- Samsung Frame TV (for Art Mode features)
-- Home Assistant 2024.1.0 or newer
-- SmartThings account linked to your TV
-- **For OAuth2**: SmartThings Developer Account (free)
-
----
-
-## 🚀 Installation
-
-### HACS (Recommended)
-
-1. Open HACS in Home Assistant
-2. Go to **Integrations**
-3. Click the three dots menu → **Custom repositories**
-4. Add: `https://github.com/TheFab21/ha-samsungtv-smart`
-5. Category: **Integration**
-6. Click **Add**
-7. Search for "Samsung TV Smart" and install
-8. Restart Home Assistant
-
-### Manual Installation
-
-1. Download the latest release from GitHub
-2. Copy the `samsungtv_smart` folder to `/config/custom_components/`
-3. Restart Home Assistant
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuration](#configuration)
+  - [SmartThings Authentication](#smartthings-authentication)
+  - [Integration Setup](#integration-setup)
+  - [Options](#options)
+- [Entities](#entities)
+- [Services](#services)
+  - [Standard TV Services](#standard-tv-services)
+  - [Frame Art Services](#frame-art-services)
+- [Frame Art Mode](#frame-art-mode)
+  - [Thumbnail Downloads](#thumbnail-downloads)
+- [Automations & Tips](#automations--tips)
+- [Troubleshooting](#troubleshooting)
+- [Credits](#credits)
 
 ---
 
-## 🔐 OAuth2 Setup (Recommended)
+## Features
 
-OAuth2 provides automatic token refresh, eliminating the need for manual PAT renewal.
-
-### Step 1: Create SmartThings OAuth Application
-
-1. Go to [SmartThings Developer Workspace](https://smartthings.developer.samsung.com/workspace)
-2. Sign in with your Samsung account
-3. Click **New Project** → **Device Integration** → **SmartThings Cloud Connector**
-4. Name your project (e.g., "Home Assistant Integration")
-5. Go to **Develop** → **Registration** → **App Registration**
-6. Click **Create New**
-
-### Step 2: Configure OAuth Settings
-
-In the App Registration form:
-
-| Field | Value |
-|-------|-------|
-| **App Name** | Home Assistant Samsung TV |
-| **App Type** | Automation App |
-| **OAuth Scope** | `r:devices:*` and `x:devices:*` |
-| **Redirect URI** | `https://my.home-assistant.io/redirect/oauth` |
-
-7. Click **Save** and note your:
-   - **Client ID** (OAuth Client Id)
-   - **Client Secret** (OAuth Client Secret)
-
-> ⚠️ **Important**: Use the "OAuth Client Id", NOT the "App Id"!
-
-### Step 3: Configure Home Assistant
-
-Add your credentials to Home Assistant:
-
-**Option A: Via UI**
-1. Go to **Settings** → **Devices & Services** → **Application Credentials**
-2. Click **Add Credentials**
-3. Select **Samsung TV Smart**
-4. Enter your Client ID and Client Secret
-
-**Option B: Via configuration.yaml**
-```yaml
-# configuration.yaml
-application_credentials:
-  - platform: samsungtv_smart
-    client_id: "YOUR_CLIENT_ID"
-    client_secret: "YOUR_CLIENT_SECRET"
-```
-
-### Step 4: Add Integration with OAuth
-
-1. Go to **Settings** → **Devices & Services**
-2. Click **Add Integration** → **Samsung TV Smart**
-3. Select **SmartThings OAuth** as authentication method
-4. Complete the OAuth flow in your browser
-5. Your TV should now appear with OAuth authentication
+- Full Samsung Smart TV (Tizen OS) control via WebSocket
+- Power on/off, volume, source selection, app launching
+- SmartThings integration for enhanced status polling (channel info, picture mode, sound mode…)
+- **Three SmartThings authentication methods**: OAuth2, Personal Access Token, or existing ST integration
+- **Samsung Frame TV Art Mode** — full artwork management via a dedicated async API
+- New dedicated entities: Art Mode switch and Frame Art sensor
+- Improved WebSocket connection stability — prevents zombie connections and saturation
+- Wake-on-LAN support
+- Channel and app list management
+- Logo fetching for apps and sources
 
 ---
 
-## 🖼️ Frame TV Art Mode Features
+## Requirements
 
-### Entities Created
+- Home Assistant **≥ 2025.6.0**
+- Python packages (installed automatically): `websocket-client`, `wakeonlan`, `aiofiles`, `casttube`, `pysmartthings==3.5.0`
+- A Samsung Smart TV running **Tizen OS** (2016+), reachable on the local network
+- For SmartThings features: a Samsung account and a SmartThings-registered TV
+
+---
+
+## Installation
+
+### HACS (recommended)
+
+1. In Home Assistant, open **HACS → Integrations**.
+2. Click the three-dot menu **⋮ → Custom repositories**.
+3. Add the repository URL and set category to **Integration**.
+4. Search for **SamsungTV Smart** and click **Download**.
+5. Restart Home Assistant.
+
+### Manual
+
+1. Download or clone this repository.
+2. Copy the `samsungtv_smart` folder into your Home Assistant `custom_components` directory:
+
+   ```
+   config/
+   └── custom_components/
+       └── samsungtv_smart/
+   ```
+
+3. Restart Home Assistant.
+
+---
+
+## Configuration
+
+### SmartThings Authentication
+
+Three methods are available. Choose **one**.
+
+---
+
+#### Option 1 — OAuth2 (Recommended)
+
+This method authenticates via your Samsung account. Tokens are refreshed automatically.
+
+**Step 1 — Create a SmartThings OAuth App (one time)**
+
+1. Go to [https://developer.smartthings.com](https://developer.smartthings.com) and sign in with your Samsung account.
+2. Create a **New Project** → select *Automation for the Home*.
+3. In the sidebar, click **Register App → OAuth2 / Credentials**.
+4. Fill in:
+   - **App Name**: `Home Assistant Samsung TV` (or any name)
+   - **Redirect URI**: `https://my.home-assistant.io/redirect/oauth`
+   - **Scopes**: `r:devices:*` and `x:devices:*`
+5. Save and note the **Client ID** and **Client Secret**.
+
+**Step 2 — Add Application Credentials in Home Assistant**
+
+1. Go to **Settings → Devices & Services**.
+2. Click **⋮ → Application Credentials → + Add Application Credentials**.
+3. Select **SamsungTV Smart**.
+4. Enter your **Client ID** and **Client Secret**.
+5. Click **Add**.
+
+**Step 3 — Configure the integration**
+
+When adding the integration, select **OAuth2 (Sign in with Samsung)** and follow the login flow.
+
+---
+
+#### Option 2 — Personal Access Token (PAT)
+
+1. Go to [https://account.smartthings.com/tokens](https://account.smartthings.com/tokens).
+2. Create a new token with at least **Devices** permissions.
+3. Copy the token.
+4. When adding the integration, select **Personal Access Token** and paste it.
+
+---
+
+#### Option 3 — SmartThings Integration Link
+
+If you already have the native SmartThings integration configured in Home Assistant:
+
+1. When adding the integration, select **Personal Access Token**.
+2. In the dropdown, select your existing SmartThings integration instead of entering a token manually.
+
+---
+
+### Integration Setup
+
+1. Go to **Settings → Devices & Services → + Add Integration**.
+2. Search for **SamsungTV Smart**.
+3. Choose your authentication method (see above).
+4. Enter your **TV's IP address** (a static IP or DHCP reservation is strongly recommended).
+5. Follow the on-screen steps. Your TV may prompt you to accept the pairing request — accept it.
+
+> **Tip**: If your TV is off and you are using Wake-on-LAN, make sure WOL is enabled in your TV's network settings.
+
+---
+
+### Options
+
+After initial setup, click **Configure** on the integration card to access these options:
+
+| Option | Description |
+|---|---|
+| **Source list** | Define custom input sources (JSON: `{"HDMI 1": "KEY_HDMI1", ...}`) |
+| **App list** | Define custom app shortcuts (JSON) |
+| **App load method** | How to load the app list: All, Default, or Disabled |
+| **App launch method** | Standard, Remote, or REST |
+| **Power on method** | Wake-on-LAN or SmartThings |
+| **WOL repeat count** | Number of WOL packets sent (1–5) |
+| **Scan interval** | SmartThings polling interval (seconds) |
+| **Use ST channel info** | Fetch live channel info from SmartThings |
+| **Use ST status info** | Fetch power/input status from SmartThings |
+| **Show channel number** | Display channel number alongside channel name |
+| **Use mute check** | Detect mute state via SmartThings |
+| **Logo option** | Show logos for apps/channels (local or remote) |
+| **Sync turn on/off** | Optional entity to mirror TV power state |
+| **External power entity** | Use an external sensor to determine power state |
+| **Toggle Art Mode** | Toggle Art Mode when turning on a Frame TV that is already in Art Mode |
+| **Ping port** | Port used to detect TV presence |
+| **WS name** | Name shown on the TV when pairing (default: `[Home Assistant]`) |
+
+---
+
+## Entities
+
+Each configured TV creates the following entities:
 
 | Entity | Type | Description |
-|--------|------|-------------|
-| `media_player.samsung_*` | Media Player | Main TV control with art mode attributes |
-| `switch.samsung_*_frame_art_mode` | Switch | Toggle Art Mode on/off |
-| `sensor.samsung_*_frame_art` | Sensor | Current artwork info and thumbnail |
-| `sensor.samsung_*_illuminance` | Sensor | Ambient light level |
-| `sensor.samsung_*_brightness_intensity` | Sensor | Art Mode brightness |
+|---|---|---|
+| `media_player.<tv_name>` | Media Player | Main TV control entity |
+| `switch.<tv_name>_art_mode` | Switch | Toggle Art Mode on/off (Frame TVs only) |
+| `sensor.<tv_name>_frame_art` | Sensor | Currently displayed artwork info (Frame TVs only) |
 
-### Available Services
+### Media Player Attributes
 
-#### Basic Art Mode Control
+In addition to standard media player attributes, the following are available:
+
+- `device_model`, `device_name`, `device_os`, `device_mac`
+- `picture_mode`, `picture_mode_list`
+- `sound_mode`, `sound_mode_list`
+- `channel`, `channel_name`, `channel_number`
+- `app_id`, `app_name`
+- `frame_art_mode` — whether Art Mode is active
+- `frame_art_current` — content ID of the current artwork
+
+### Frame Art Sensor Attributes
+
+- `art_mode` — current Art Mode state
+- `content_id` — artwork content ID
+- `content_type` — artwork category
+- `thumbnail_url` — local URL to the thumbnail (if downloaded)
+
+---
+
+## Services
+
+### Standard TV Services
+
+These are called on the `media_player` entity.
+
+| Service | Description |
+|---|---|
+| `media_player.turn_on` | Turn on the TV (WOL or SmartThings) |
+| `media_player.turn_off` | Turn off the TV |
+| `media_player.volume_up/down` | Adjust volume |
+| `media_player.mute_volume` | Mute/unmute |
+| `media_player.set_volume_level` | Set volume level (0.0–1.0) |
+| `media_player.select_source` | Switch input source or launch an app |
+| `media_player.play_media` | Send a key command or launch a URL |
+| `samsungtv_smart.select_picture_mode` | Change picture mode |
+| `remote.send_command` | Send raw key commands (via remote entity) |
+
+**Sending key commands via `play_media`:**
 
 ```yaml
-# Get Art Mode status
-service: samsungtv_smart.art_get_artmode
+service: media_player.play_media
 target:
-  entity_id: media_player.samsung_frame
-
-# Turn Art Mode on/off
-service: samsungtv_smart.art_set_artmode
-target:
-  entity_id: media_player.samsung_frame
+  entity_id: media_player.samsung_tv
 data:
-  enabled: true
+  media_content_type: send_key
+  media_content_id: KEY_MUTE
 ```
 
-#### Artwork Selection
+---
+
+### Frame Art Services
+
+These services require a Samsung **Frame TV** with Art Mode. They are called on the `media_player` entity.
+
+| Service | Description |
+|---|---|
+| `samsungtv_smart.art_get_artmode` | Get current Art Mode status |
+| `samsungtv_smart.art_set_artmode` | Enable or disable Art Mode |
+| `samsungtv_smart.art_available` | List all available artworks (optionally filtered by category) |
+| `samsungtv_smart.art_get_current` | Get info about the currently displayed artwork |
+| `samsungtv_smart.art_select_image` | Display a specific artwork by content ID |
+| `samsungtv_smart.art_upload` | Upload a local image to the TV |
+| `samsungtv_smart.art_delete` | Delete a user-uploaded artwork (MY-* IDs only) |
+| `samsungtv_smart.art_get_thumbnail` | Download a single artwork thumbnail |
+| `samsungtv_smart.art_get_thumbnails_batch` | Batch-download thumbnails for multiple artworks |
+| `samsungtv_smart.art_set_brightness` | Set Art Mode brightness (0–100, mapped to TV scale 1–10) |
+| `samsungtv_smart.art_get_brightness` | Get current Art Mode brightness |
+| `samsungtv_smart.art_change_matte` | Change the matte/frame style of an artwork |
+| `samsungtv_smart.art_set_photo_filter` | Apply a photo filter to an artwork |
+| `samsungtv_smart.art_get_photo_filter_list` | List available photo filters |
+| `samsungtv_smart.art_get_matte_list` | List available matte styles |
+| `samsungtv_smart.art_set_favourite` | Add/remove artwork from favourites |
+| `samsungtv_smart.art_set_slideshow` | Configure slideshow (duration, shuffle, category) |
+| `samsungtv_smart.art_set_auto_rotation` | Configure auto-rotation (duration, shuffle, category) |
+
+#### Service Examples
+
+**Select an artwork:**
 
 ```yaml
-# Select specific artwork
 service: samsungtv_smart.art_select_image
-target:
-  entity_id: media_player.samsung_frame
 data:
-  content_id: "SAM-S1234567"
-  
-# Get available artworks
-service: samsungtv_smart.art_available
-target:
   entity_id: media_player.samsung_frame
-data:
-  category_id: "MY-C0004"  # Optional: filter by category
+  content_id: SAM-F0206
+  show: true
 ```
 
-#### Matte (Frame) Control
+**Upload a local image:**
 
 ```yaml
-# Change matte style and color
-service: samsungtv_smart.art_change_matte
-target:
-  entity_id: media_player.samsung_frame
+service: samsungtv_smart.art_upload
 data:
-  matte_type: "shadowbox"
-  matte_color: "neutral"
-
-# Available matte types:
-# none, modernthin, modern, modernwide, flexible, shadowbox, panoramic, triptych, mix, squares
-
-# Available colors (varies by matte type):
-# neutral, antique, warm, polar, sand, seafoam, sage, burgandy, navy, apricot, byzantine, lavender, redorange, ink, peach
+  entity_id: media_player.samsung_frame
+  file_path: /config/www/my_art.jpg
+  matte_id: modern_apricot
+  file_type: jpg
 ```
 
-#### Slideshow & Auto-Rotation
+**Batch download thumbnails:**
 
 ```yaml
-# Configure slideshow
-service: samsungtv_smart.art_set_slideshow
-target:
-  entity_id: media_player.samsung_frame
-data:
-  duration: "15min"  # 1min, 5min, 10min, 15min, 30min, 1hour, 2hour, 4hour, 8hour
-  shuffle: true
-  category_id: 4  # 2=Personal, 4=Favorites
-
-# Configure auto-rotation (similar to slideshow)
-service: samsungtv_smart.art_set_auto_rotation
-target:
-  entity_id: media_player.samsung_frame
-data:
-  duration: "1hour"
-  shuffle: true
-  category_id: 4
-```
-
-#### Brightness Control
-
-```yaml
-# Set Art Mode brightness (0-100)
-service: samsungtv_smart.art_set_brightness
-target:
-  entity_id: media_player.samsung_frame
-data:
-  brightness: 50
-
-# Get current brightness
-service: samsungtv_smart.art_get_brightness
-target:
-  entity_id: media_player.samsung_frame
-```
-
-#### Thumbnail Management
-
-```yaml
-# Download single thumbnail
-service: samsungtv_smart.art_get_thumbnail
-target:
-  entity_id: media_player.samsung_frame
-data:
-  content_id: "SAM-S1234567"
-  save_to_file: true
-
-# Batch download with orphan cleanup
 service: samsungtv_smart.art_get_thumbnails_batch
-target:
-  entity_id: media_player.samsung_frame
 data:
-  favorites_only: true
-  cleanup_orphans: true  # Remove thumbnails for deleted favorites
-  force_download: false  # Skip existing files
-```
-
-#### Favorites Management
-
-```yaml
-# Add/remove from favorites
-service: samsungtv_smart.art_set_favourite
-target:
   entity_id: media_player.samsung_frame
+  category_id: MY-C0002
+  favorites_only: false
+  force_download: false
+```
+
+**Configure slideshow:**
+
+```yaml
+service: samsungtv_smart.art_set_slideshow
 data:
-  content_id: "SAM-S1234567"
-  favourite: true
+  entity_id: media_player.samsung_frame
+  duration: 15min
+  shuffle: true
+  category_id: 2
 ```
 
 ---
 
-## 📂 Thumbnail Storage
+## Frame Art Mode
 
-Thumbnails are saved to organized directories:
+### Overview
+
+Frame TVs can display artwork when not in use. This integration provides full programmatic control over the Art Mode, including artwork selection, brightness, matting, filters, and slideshow settings.
+
+### Content IDs
+
+Artworks are identified by content IDs:
+
+| Prefix | Source |
+|---|---|
+| `SAM-*` | Samsung Art Store content |
+| `MY-F*` | User-uploaded photos |
+| `MY-C*` | Categories (MY-C0002=My Photos, MY-C0004=Favorites, MY-C0008=All) |
+
+### Matte Styles
+
+Format: `type_color`
+
+**Types**: `none`, `modernthin`, `modern`, `modernwide`, `shadowboxthin`, `shadowbox`, `shadowboxwide`, `panoramic`, `flexible`
+
+**Colors**: `black`, `neutral`, `antique`, `warm`, `polar`, `sand`, `seafoam`, `sage`, `burgandy`, `navy`, `apricot`, `byzantine`, `lavender`, `redorange`
+
+**Example**: `modern_apricot`, `shadowbox_polar`
+
+### Photo Filters
+
+Available filters: `none`, `mono`, `original`, `ink`, `watercolor`, `oil`, `pastel`, `posterize`, `noir`, `quartertone`
+
+### Thumbnail Downloads
+
+Thumbnails are automatically organized and saved to:
 
 ```
-/config/www/frame_art/
-├── current.jpg          # Currently displayed artwork
-├── personal/            # User-uploaded images (MY_F*)
-│   ├── MY_F0001.jpg
-│   └── MY_F0002.jpg
-├── store/               # Samsung Art Store (SAM-S*)
-│   ├── SAM-S1234567.jpg
-│   └── SAM-S7654321.jpg
-└── other/               # Other content types
+config/www/frame_art/
+├── personal/    ← user-uploaded photos (MY-F*)
+├── store/       ← Samsung Art Store (SAM-*)
+└── other/       ← everything else
 ```
 
-Access thumbnails via:
-- Current: `/local/frame_art/current.jpg`
-- Store: `/local/frame_art/store/SAM-S1234567.jpg`
-- Personal: `/local/frame_art/personal/MY_F0001.jpg`
+These are then accessible via Home Assistant's `/local/` URL path, making them directly usable in Lovelace dashboards and galleries.
+
+**Smart caching**: thumbnails are only downloaded once. Subsequent calls to `art_get_thumbnail` or `art_get_thumbnails_batch` skip files that already exist, making batch operations fast on repeat runs. Use `force_download: true` to override.
 
 ---
 
-## 🤖 Automation Examples
+## Automations & Tips
 
-### Weekend Art Slideshow
+### Wake-on-LAN with delayed command
+
+Samsung TVs may need a moment to become responsive after WOL. Use a delay in automations:
 
 ```yaml
-alias: "Frame Art: Weekend Slideshow"
-triggers:
-  - trigger: time
-    at: "09:00:00"
-conditions:
-  - condition: time
-    weekday:
-      - sat
-      - sun
-actions:
-  - action: samsungtv_smart.art_set_slideshow
-    target:
-      entity_id: media_player.samsung_frame
-    data:
-      duration: "15min"
-      shuffle: true
-      category_id: 4
-mode: single
+automation:
+  - alias: "Turn on TV and switch to HDMI 1"
+    trigger:
+      - platform: ...
+    action:
+      - service: media_player.turn_on
+        target:
+          entity_id: media_player.samsung_tv
+      - delay: "00:00:08"
+      - service: media_player.select_source
+        target:
+          entity_id: media_player.samsung_tv
+        data:
+          source: HDMI 1
 ```
 
-### Sync Favorites Thumbnails
+### Preventive maintenance (integration reload)
+
+To prevent WebSocket connection saturation over time, you can schedule a periodic reload:
 
 ```yaml
-alias: "Frame Art: Sync Favorites"
-triggers:
-  - trigger: time_pattern
-    hours: "/6"  # Every 6 hours
-actions:
-  - action: samsungtv_smart.art_get_thumbnails_batch
-    target:
-      entity_id: media_player.samsung_frame
-    data:
-      favorites_only: true
-      cleanup_orphans: true
-  - delay:
-      seconds: 2
-  - action: homeassistant.update_entity
-    target:
-      entity_id: sensor.store  # Folder sensor for gallery card
-mode: single
+automation:
+  - alias: "Reload SamsungTV integration nightly"
+    trigger:
+      - platform: time
+        at: "03:00:00"
+    action:
+      - service: homeassistant.reload_config_entry
+        target:
+          entity_id: media_player.samsung_tv
 ```
 
-### Sync Matte Selection from TV
-
-When matte is changed on the TV, update input_select helpers:
+### Art Mode automation on TV off
 
 ```yaml
-alias: "Frame Art: Sync Matte from TV"
-triggers:
-  - trigger: state
-    entity_id: sensor.samsung_frame_frame_art
-    attribute: current_matte_id
-actions:
-  - variables:
-      matte_id: >-
-        {{ state_attr('sensor.samsung_frame_frame_art', 'current_matte_id') |
-        default('none', true) | lower }}
-      matte_type: |
-        {% if matte_id in ['none', '', None] or '_' not in matte_id %}
-          none
-        {% else %}
-          {{ matte_id.split('_')[0] | lower }}
-        {% endif %}
-      matte_color: |
-        {% if matte_id in ['none', '', None] or '_' not in matte_id %}
-          {{ states('input_select.frame_matte_color') }}
-        {% else %}
-          {{ matte_id.split('_')[1] | lower }}
-        {% endif %}
-  - action: input_select.select_option
-    target:
-      entity_id: input_select.frame_matte_type
-    data:
-      option: "{{ matte_type | trim }}"
-  - action: input_select.select_option
-    target:
-      entity_id: input_select.frame_matte_color
-    data:
-      option: "{{ matte_color | trim }}"
-mode: queued
-```
-
-### Art Mode at Night
-
-```yaml
-alias: "Frame Art: Night Mode"
-triggers:
-  - trigger: time
-    at: "22:00:00"
-conditions:
-  - condition: state
-    entity_id: media_player.samsung_frame
-    state: "on"
-actions:
-  - action: switch.turn_on
-    target:
-      entity_id: switch.samsung_frame_frame_art_mode
-  - action: samsungtv_smart.art_set_brightness
-    target:
-      entity_id: media_player.samsung_frame
-    data:
-      brightness: 20
-mode: single
+automation:
+  - alias: "Enable Art Mode when TV turns off"
+    trigger:
+      - platform: state
+        entity_id: media_player.samsung_frame
+        to: "off"
+    action:
+      - service: switch.turn_on
+        target:
+          entity_id: switch.samsung_frame_art_mode
 ```
 
 ---
 
-## 🖼️ Custom Folder Gallery Card
+## Troubleshooting
 
-Display your Frame TV artwork collection in a Lovelace gallery.
+### TV not found during setup
 
-### Installation
+- Make sure the TV is on and connected to the same network as Home Assistant.
+- Ensure the TV's IP address is correct and reachable (`ping <ip>`).
+- Disable any VLANs or firewall rules blocking ports **8001** and **8002**.
 
-1. Copy `folder-gallery-card.js` to `/config/www/community/folder-gallery-card/`
-2. Add to Lovelace resources:
-   ```yaml
-   resources:
-     - url: /local/community/folder-gallery-card/folder-gallery-card.js
-       type: module
-   ```
+### TV accepts pairing but integration shows unavailable
 
-### Configuration
+- The first pairing token is stored in the config entry. If the token is rejected, delete the integration and re-add it — the TV will prompt again for pairing.
+- Make sure you **Accept** the pairing request on the TV screen within the timeout window.
 
-1. First, create a folder sensor to monitor your thumbnails:
+### WebSocket connectivity issues / TV becomes unresponsive
 
-```yaml
-# configuration.yaml
-sensor:
-  - platform: folder
-    folder: /config/www/frame_art/store
-    filter: "*.jpg"
-    scan_interval: 30
-```
+Samsung TVs have strict limits on simultaneous WebSocket connections. If the integration creates too many connections without properly closing them, the TV's SmartThings service can become saturated.
 
-2. Add the card to your dashboard:
+Signs of this issue:
+- TV stops responding to commands
+- Logs show repeated `WebSocketProtocolException` or connection refused errors
+- Issue resolves temporarily after a TV restart
 
-```yaml
-type: custom:folder-gallery-card
-title: Frame TV Favorites
-folder_sensor: sensor.store
-folder: /local/frame_art/store
-columns: 4
-image_height: 160px
-aspect_ratio: "1"
-tap_action: lightbox
-hold_action:
-  service: samsungtv_smart.art_select_image
-  target:
-    entity_id: media_player.samsung_frame
-  data:
-    content_id: "{{content_id}}"
-```
+Mitigations built into this fork:
+- Proper handling of invalid WebSocket close opcodes
+- Active connection cleanup to prevent zombie connections
+- Use the **nightly reload automation** above as a preventive measure.
 
-### Card Options
+### SmartThings features not working
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `title` | string | - | Card title |
-| `folder_sensor` | string | - | Folder sensor entity ID |
-| `folder` | string | - | Base folder path (e.g., `/local/frame_art/store`) |
-| `columns` | number | 4 | Number of columns |
-| `image_height` | string | `150px` | Image height |
-| `aspect_ratio` | string | - | Aspect ratio (e.g., "1" for square, "16/9") |
-| `gap` | string | `8px` | Gap between images |
-| `border_radius` | string | `8px` | Image border radius |
-| `tap_action` | string | - | Action on tap: `lightbox`, `action`, `more-info` |
-| `hold_action` | object | - | Service call on hold |
+- Verify your API key/token has `Devices` permissions.
+- Check that your TV is registered and visible in the SmartThings app.
+- For OAuth2: confirm your Developer Portal app is still active and has the correct scopes (`r:devices:*`, `x:devices:*`).
 
-### Template Variables
+### OAuth2 — "Token refresh failed"
 
-Use these in your action data:
-- `{{content_id}}` - Artwork content ID (extracted from filename)
-- `{{filename}}` - Full filename
-- `{{image_path}}` - Full image path
-- `{{name}}` - Artwork name
+1. Check internet connectivity from Home Assistant.
+2. Verify your OAuth app on [developer.smartthings.com](https://developer.smartthings.com) is still active.
+3. Re-authenticate: go to **Settings → Devices & Services → Samsung TV Smart → Reconfigure**.
+
+### Frame Art services not working
+
+- These services require a Samsung **Frame** TV with Art Mode capability.
+- Make sure the TV is on (not just in Art Mode).
+- Check that port **8002** (encrypted WebSocket) is not blocked.
 
 ---
 
-## 🐛 Troubleshooting
+## Credits
 
-### OAuth Token Refresh Issues
+This project is a fork of [ollo69/ha-samsungtv-smart](https://github.com/ollo69/ha-samsungtv-smart), itself based on work by [@jaruba](https://github.com/jaruba) and [@screwdgeh](https://github.com/screwdgeh).
 
-If you see "Invalid refresh token" errors:
+Frame Art API based on [xchwarze/samsung-tv-ws-api](https://github.com/xchwarze/samsung-tv-ws-api) (art-updates branch), with contributions from Matthew Garrett and Nick Waterton.
 
-1. Check that only one instance is refreshing tokens (global lock should prevent this)
-2. Verify your Client ID and Secret are correct
-3. Try reconfiguring the integration with OAuth
-
-### Art Mode Commands Fail
-
-If Art Mode commands fail silently:
-
-1. Enable debug logging:
-   ```yaml
-   logger:
-     logs:
-       custom_components.samsungtv_smart: debug
-       custom_components.samsungtv_smart.api.art: debug
-   ```
-
-2. Check for WebSocket disconnection in logs
-3. The integration now auto-reconnects, but a restart may help
-
-### Thumbnails Not Downloading
-
-1. Ensure TV is in Art Mode or on
-2. Check if content is DRM-protected (Samsung Art Store items may have restrictions)
-3. Look for timeout errors in logs
-
-### Gallery Card Not Updating
-
-After removing favorites:
-1. Call `art_get_thumbnails_batch` with `cleanup_orphans: true`
-2. Wait 2 seconds
-3. Call `homeassistant.update_entity` on your folder sensor
+WebSocket library: [websocket-client](https://github.com/websocket-client/websocket-client) / [Xchwarze](https://github.com/Xchwarze).
 
 ---
 
-## 🔧 Debug Logging
-
-```yaml
-# configuration.yaml
-logger:
-  default: warning
-  logs:
-    custom_components.samsungtv_smart: debug
-    custom_components.samsungtv_smart.api.art: debug
-    custom_components.samsungtv_smart.api.smartthings: debug
-    custom_components.samsungtv_smart.switch: debug
-    custom_components.samsungtv_smart.sensor: debug
-```
-
----
-
-## 📝 Changelog
-
-### v0.9.0 (Frame Art Edition)
-
-#### OAuth2 Authentication
-- ✨ Full OAuth2 support with automatic token refresh
-- ✨ Global lock prevents race conditions during token refresh
-- ✨ Token propagation via callback to all components
-- ✨ Fallback mechanism for legacy PAT authentication
-
-#### Frame TV Art Mode
-- ✨ New `switch.samsung_*_frame_art_mode` entity with retry logic
-- ✨ New `sensor.samsung_*_frame_art` with artwork tracking
-- ✨ Thumbnail download and caching to local storage
-- ✨ Batch thumbnail download with `cleanup_orphans` option
-- ✨ Slideshow and auto-rotation configuration
-- ✨ Matte (frame) style and color control
-- ✨ Photo filter support
-- ✨ Brightness control (0-100 scale)
-
-#### Technical Improvements
-- 🔧 WebSocket auto-reconnection when TV closes connection
-- 🔧 pysmartthings v6.0+ compatibility (Capability.switch → string constants)
-- 🔧 SmartThings illuminance sensor support
-- 🔧 Brightness intensity sensor
-- 🔧 Improved error handling and logging
-- 🔧 Exponential backoff for failed operations
-
----
-
-## 🙏 Credits
-
-- [ollo69](https://github.com/ollo69) - Original ha-samsungtv-smart integration
-- [NickWaterton](https://github.com/NickWaterton) - samsung-tv-ws-api reference
-- Samsung SmartThings - API documentation
-
----
-
-## 📄 License
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+*Licensed under the GNU Lesser General Public License v2.1.*
