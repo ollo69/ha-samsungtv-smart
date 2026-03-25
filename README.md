@@ -467,12 +467,6 @@ Mitigations built into this fork:
 - Check that your TV is registered and visible in the SmartThings app.
 - For OAuth2: confirm your Developer Portal app is still active and has the correct scopes (`r:devices:*`, `x:devices:*`).
 
-### OAuth2 — "Token refresh failed"
-
-1. Check internet connectivity from Home Assistant.
-2. Verify your OAuth app on [developer.smartthings.com](https://developer.smartthings.com) is still active.
-3. Re-authenticate: go to **Settings → Devices & Services → Samsung TV Smart → Reconfigure**.
-
 ### Frame Art services not working
 
 - These services require a Samsung **Frame** TV with Art Mode capability.
