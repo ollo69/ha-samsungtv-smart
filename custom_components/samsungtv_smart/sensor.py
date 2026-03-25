@@ -10,7 +10,7 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_TOKEN, LIGHT_LUX
+from homeassistant.const import CONF_HOST, CONF_ID, CONF_NAME, CONF_PORT, CONF_TOKEN, LIGHT_LUX
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import DeviceInfo
@@ -57,7 +57,10 @@ async def async_setup_entry(
     port = config.get(CONF_PORT, DEFAULT_PORT)
     token = config.get(CONF_TOKEN)
     ws_name = config.get(CONF_WS_NAME, "HomeAssistant")
-    
+
+    # Get device unique ID - must match entity.py logic for device grouping
+    device_unique_id = config.get(CONF_ID, entry.entry_id)
+
     # Get device name from config or entry title, fallback to host
     device_name = config.get(CONF_NAME) or entry.title or host
     
@@ -103,7 +106,7 @@ async def async_setup_entry(
         coordinator = FrameArtCoordinator(hass, art_api, entry)
         
         # Add Frame Art sensor
-        entities.append(FrameArtSensor(coordinator, entry, art_api, device_name))
+        entities.append(FrameArtSensor(coordinator, entry, art_api, device_name, device_unique_id))
         
         # Schedule first refresh in background (non-blocking)
         hass.async_create_background_task(
@@ -197,7 +200,7 @@ async def async_setup_entry(
                                 session=session,
                                 device_id=device.device_id,
                                 device_name=device.label,
-                                parent_device_id=main_device.device_id,
+                                parent_device_id=device_unique_id,
                             )
                         )
                     
@@ -219,7 +222,7 @@ async def async_setup_entry(
                                 session=session,
                                 device_id=device.device_id,
                                 device_name=device.label,
-                                parent_device_id=main_device.device_id,
+                                parent_device_id=device_unique_id,
                             )
                         )
                     
@@ -742,6 +745,7 @@ class FrameArtSensor(CoordinatorEntity, SensorEntity):
         entry: ConfigEntry,
         art_api: SamsungTVAsyncArt,
         device_name: str,
+        device_unique_id: str,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
@@ -751,10 +755,10 @@ class FrameArtSensor(CoordinatorEntity, SensorEntity):
         # Use explicit name instead of has_entity_name to avoid "None" prefix
         self._attr_name = f"{device_name} Frame Art"
         self._last_service_result: dict[str, Any] | None = None
-        
+
         # Device info to link with the main TV entity
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
+            identifiers={(DOMAIN, device_unique_id)},
         )
 
     @property
