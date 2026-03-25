@@ -1,6 +1,6 @@
 # SamsungTV Smart — Enhanced Fork
 
-[![Version](https://img.shields.io/badge/version-6.3.2-blue.svg)](https://github.com)
+[![Version](https://img.shields.io/badge/version-6.3.3-blue.svg)](https://github.com)
 [![HA Version](https://img.shields.io/badge/Home%20Assistant-%3E%3D2025.6.0-green.svg)](https://www.home-assistant.io)
 [![License: LGPL v2.1](https://img.shields.io/badge/License-LGPL%20v2.1-yellow.svg)](https://www.gnu.org/licenses/lgpl-2.1)
 
