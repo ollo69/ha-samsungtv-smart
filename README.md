@@ -88,7 +88,7 @@ Three methods are available. Choose **one**.
 
 ---
 
-#### Option 1 — OAuth2 (Recommended)
+#### Option 1 — OAuth2 Setup (Recommended)
 
 OAuth2 provides automatic token refresh, eliminating the need for manual PAT renewal.
 As of 2025/2026, the SmartThings Developer Workspace is deprecated and new projects can not be created. 
@@ -460,12 +460,6 @@ Mitigations built into this fork:
 - Proper handling of invalid WebSocket close opcodes
 - Active connection cleanup to prevent zombie connections
 - Use the **nightly reload automation** above as a preventive measure.
-
-### SmartThings features not working
-
-- Verify your API key/token has `Devices` permissions.
-- Check that your TV is registered and visible in the SmartThings app.
-- For OAuth2: confirm your Developer Portal app is still active and has the correct scopes (`r:devices:*`, `x:devices:*`).
 
 ### Frame Art services not working
 
