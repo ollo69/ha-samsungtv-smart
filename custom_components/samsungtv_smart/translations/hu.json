@@ -1,58 +1,122 @@
 {
   "config": {
-    "abort": {
-      "already_configured": "Ez a Samsung TV már konfigurálva van.",
-      "already_in_progress": "A Samsung TV konfigurációja már folyamatban van.",
-      "unsupported_version": "Ehhez az integrációhoz legalább a HomeAssistant {req_ver} verzió szükséges, jelenleg a(z) {run_ver} verziót használja."
-    },
-    "error": {
-      "auth_missing": "A Home Assistantnek nincs engedélye a ehhez a Samsung TV-hez való kapcsolódáshoz. Kérjük, ellenőrizze a TV beállításait, hogy engedélyezni tudja a Home Assistant számára.",
-      "invalid_host": "Érvénytelen hoszt.",
-      "not_successful": "Nem sikerült létrehozni WebSocket kapcsolatot ezzel a Samsung TV készülékkel.",
-      "not_supported": "Ez a Samsung TV készülék jelenleg nem támogatott.",
-      "wrong_api_key": "Hibás SmartThings token.",
-      "st_device_not_found": "SmartThings TV eszközazonosító (deviceID) nem található.",
-      "st_device_used": "SmartThings TV eszközazonosító (deviceID) már használatban van."
-    },
-    "flow_title": "SamsungTV Smart: {model}",
     "step": {
-      "confirm": {
-        "description": "Szeretné beállítani a Samsung TV-t ({model})? Ha még soha nem csatlakoztatta a Home Assistantot, akkor megjelenik egy felugró ablak a TV-n, ami engedélyezést kér. A manuális konfigurációk ezen TV esetében felülíródnak."
-      },
       "user": {
+        "title": "Samsung TV Smart - Authentication",
+        "description": "Adja meg a Samsung TV adataidat. A SmartThings token opcionális, de erősen javasolt.\nMiután megerősítette, látnia kell egy felugró ablakot a TV-n, ami engedélyezést kér.",
         "data": {
+          "auth_method": "Authentication Method",
           "host": "Hoszt vagy IP cím",
           "name": "Az entitásnak adott név",
           "use_ha_name_for_ws": "Használja a HA példány nevét az azonosításhoz a TV-n",
           "api_key": "SmartThings által generált token (opcionális)"
-        },
-        "description": "Adja meg a Samsung TV adataidat. A SmartThings token opcionális, de erősen javasolt.\nMiután megerősítette, látnia kell egy felugró ablakot a TV-n, ami engedélyezést kér."
+        }
+      },
+      "pick_implementation": {
+        "title": "Sign in with Samsung",
+        "description": "Select your SmartThings account to authenticate."
+      },
+      "host": {
+        "title": "Configure TV",
+        "description": "Enter your Samsung TV's IP address and a name for the device.",
+        "data": {
+          "host": "TV IP Address",
+          "name": "Device Name",
+          "use_ha_name_for_ws": "Use Home Assistant location name for WebSocket"
+        }
+      },
+      "manual": {
+        "title": "Manual Configuration",
+        "description": "Enter your TV's IP address and SmartThings credentials.\n\nTo create a Personal Access Token, visit https://account.smartthings.com/tokens",
+        "data": {
+          "host": "TV IP Address",
+          "name": "Device Name",
+          "use_ha_name_for_ws": "Use Home Assistant location name for WebSocket",
+          "api_key": "SmartThings Personal Access Token (PAT)",
+          "st_entry_unique_id": "Or use SmartThings Integration Token"
+        }
+      },
+      "st_integration": {
+        "title": "Use SmartThings Integration",
+        "description": "Reuse the authentication from your existing SmartThings integration.",
+        "data": {
+          "st_entry": "SmartThings Integration",
+          "host": "TV IP Address",
+          "name": "Device Name"
+        }
       },
       "stdevice": {
+        "title": "Select SmartThings Device",
+        "description": "Több TV-t is konfigurált a fiókján. Válassza ki a konfigurálandó TV-t a listából.",
         "data": {
           "st_devices": "SmartThings TV"
-        },
-        "description": "Több TV-t is konfigurált a fiókján. Válassza ki a konfigurálandó TV-t a listából."
+        }
       },
       "stdeviceid": {
+        "title": "SmartThings Device ID",
+        "description": "Az automatikus SmartThings eszközazonosítás sikertelen volt. A folytatáshoz az eszközazonosítót be kell azonosítania a SmartThings weboldalon (bővebben a dokumentációban) és be kell illesztenie ide.",
         "data": {
           "device_id": "SmartThings TV eszközazonosító (deviceID)"
-        },
-        "description": "Az automatikus SmartThings eszközazonosítás sikertelen volt. A folytatáshoz az eszközazonosítót be kell azonosítania a SmartThings weboldalon (bővebben a dokumentációban) és be kell illesztenie ide."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Samsung TV",
+        "description": "Update the TV configuration.\n\nCurrent authentication: {current_auth}",
+        "data": {
+          "host": "TV IP Address",
+          "reauth_oauth": "🔐 (Re-)authenticate with OAuth2",
+          "st_entry_unique_id": "SmartThings Integration",
+          "api_key": "SmartThings Personal Access Token (PAT)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authentication Required",
+        "description": "Your SmartThings authentication has expired. Click Submit to sign in again."
+      },
+      "confirm": {
+        "description": "Szeretné beállítani a Samsung TV-t ({model})? Ha még soha nem csatlakoztatta a Home Assistantot, akkor megjelenik egy felugró ablak a TV-n, ami engedélyezést kér. A manuális konfigurációk ezen TV esetében felülíródnak."
       }
-    }
+    },
+    "error": {
+      "invalid_host": "Érvénytelen hoszt.",
+      "only_key_or_st": "Please provide either a Personal Access Token OR select a SmartThings integration, not both.",
+      "st_api_key_fail": "Could not retrieve the API key from the SmartThings integration.",
+      "wrong_api_key": "Hibás SmartThings token.",
+      "st_device_not_found": "SmartThings TV eszközazonosító (deviceID) nem található.",
+      "st_device_used": "SmartThings TV eszközazonosító (deviceID) már használatban van.",
+      "not_successful": "Nem sikerült létrehozni WebSocket kapcsolatot ezzel a Samsung TV készülékkel.",
+      "auth_missing": "A Home Assistantnek nincs engedélye a ehhez a Samsung TV-hez való kapcsolódáshoz. Kérjük, ellenőrizze a TV beállításait, hogy engedélyezni tudja a Home Assistant számára.",
+      "not_supported": "Ez a Samsung TV készülék jelenleg nem támogatott."
+    },
+    "abort": {
+      "already_configured": "Ez a Samsung TV már konfigurálva van.",
+      "unsupported_version": "Ehhez az integrációhoz legalább a HomeAssistant {req_ver} verzió szükséges, jelenleg a(z) {run_ver} verziót használja.",
+      "host_unique_id": "Cannot reconfigure: The TV's unique ID is based on the host address.",
+      "oauth_failed": "OAuth authentication failed. Please try again.",
+      "oauth_not_configured": "OAuth2 is not configured.\n\nPlease add SmartThings credentials in:\n**Settings → Devices & Services → Application Credentials**",
+      "no_smartthings_integration": "No SmartThings integration found. Please set up SmartThings first or use another authentication method.",
+      "missing_scopes": "The granted permissions are insufficient. Please ensure you grant all requested permissions.",
+      "reauth_account_mismatch": "The account used for re-authentication doesn't match the original account.",
+      "reauth_successful": "Re-authentication successful.",
+      "reauth_failed": "Re-authentication failed.",
+      "already_in_progress": "A Samsung TV konfigurációja már folyamatban van."
+    },
+    "create_entry": {
+      "default": "Successfully configured {name}"
+    },
+    "flow_title": "SamsungTV Smart: {model}"
   },
   "options": {
     "step": {
       "init": {
         "title": "SamsungTV Smart beállítások",
         "data": {
+          "logo_option": "Mutassa a logót ismert forrásokhoz, alkalmazásokhoz és csatornákhoz",
+          "use_local_logo": "Engedélyezze a helyi logóképek használatát",
+          "app_load_method": "Alkalmazások lista betöltési módja induláskor",
           "use_st_status_info": "Használja a SmartThings TV állapotinformációt",
           "use_st_channel_info": "Használja a SmartThings TV csatornainformációt",
           "show_channel_number": "Használja a SmartThings TV csatornaszám információt",
-          "app_load_method": "Alkalmazások lista betöltési módja induláskor",
-          "logo_option": "Mutassa a logót ismert forrásokhoz, alkalmazásokhoz és csatornákhoz",
-          "use_local_logo": "Engedélyezze a helyi logóképek használatát",
           "power_on_method": "A TV bekapcsolásához használt módszer",
           "show_adv_opt": "Opciók menü mutatása"
         }
@@ -60,56 +124,71 @@
       "menu": {
         "title": "SamsungTV Smart opciók menü",
         "menu_options": {
-          "adv_opt": "Haladó opciók",
+          "source_list": "Források listájának konfigurálása",
           "app_list": "Alkalmazások listájának konfigurálása",
           "channel_list": "Csatornák listájának konfigurálása",
+          "sync_ent": "Szinkronizált entitások konfigurálása",
           "init": "Alapbeállítások",
-          "save_exit": "Opciók mentése és kilépés",
-          "source_list": "Források listájának konfigurálása",
-          "sync_ent": "Szinkronizált entitások konfigurálása"
+          "adv_opt": "Haladó opciók",
+          "save_exit": "Opciók mentése és kilépés"
         }
       },
-      "adv_opt": {
-        "title": "SamsungTV Smart haladó opciók",
+      "source_list": {
+        "title": "SamsungTV Smart források listájának konfigurálása",
+        "description": "Define custom sources (name: command pairs).",
         "data": {
-          "app_launch_method": "Az alkalmazások indítási módszerének használata",
-          "dump_apps": "Az alkalmazások listájának naplófájlba való kiírása induláskor (amennyiben lehetséges)",
-          "use_mute_check": "Hangerőnémítás állapotának használata hamis bekapcsolás észleléséhez",
-          "wol_repeat": "WOL (Wake-on-LAN) csomag ismétlései a TV bekapcsolásához",
-          "power_on_delay": "Másodpercek a bekapcsolási állapot késleltetéséhez",
-          "ping_port": "TCP port, amelyet a bekapcsolási állapot ellenőrzéséhez használnak (0 az ICMP-hez)",
-          "ext_power_entity": "Bemeneti érzékelő a bekapcsolási állapot felismeréséhez",
-          "toggle_art_mode": "Art módra váltó bekapcsológomb (kizárólag Frame TV esetén)"
-        }
-      },
-      "sync_ent": {
-        "title": "SamsungTV Smart szinkronizált entitások",
-        "data": {
-          "sync_turn_off": "Lista azokról az entitásokról, amelyeket kikapcsol a TV-vel",
-          "sync_turn_on": "Lista azokról az entitásokról, amelyeket bekapcsol a TV-vel"
+          "source_list": "Források listája:"
         }
       },
       "app_list": {
         "title": "SamsungTV Smart alkalmazások listájának konfigurálása",
+        "description": "Define custom applications (name: app_id pairs).",
         "data": {
           "app_list": "Alkalmazások listája:"
         }
       },
       "channel_list": {
         "title": "SamsungTV Smart csatornák listájának konfigurálása",
+        "description": "Define favorite channels (name: channel_number pairs).",
         "data": {
           "channel_list": "Csatornák listája:"
         }
       },
-      "source_list": {
-        "title": "SamsungTV Smart források listájának konfigurálása",
+      "sync_ent": {
+        "title": "SamsungTV Smart szinkronizált entitások",
+        "description": "Select entities to synchronize with TV power state.",
         "data": {
-          "source_list": "Források listája:"
+          "sync_turn_off": "Lista azokról az entitásokról, amelyeket kikapcsol a TV-vel",
+          "sync_turn_on": "Lista azokról az entitásokról, amelyeket bekapcsol a TV-vel"
         }
+      },
+      "adv_opt": {
+        "title": "SamsungTV Smart haladó opciók",
+        "data": {
+          "app_launch_method": "Az alkalmazások indítási módszerének használata",
+          "wol_repeat": "WOL (Wake-on-LAN) csomag ismétlései a TV bekapcsolásához",
+          "ping_port": "TCP port, amelyet a bekapcsolási állapot ellenőrzéséhez használnak (0 az ICMP-hez)",
+          "ext_power_entity": "Bemeneti érzékelő a bekapcsolási állapot felismeréséhez",
+          "use_mute_check": "Hangerőnémítás állapotának használata hamis bekapcsolás észleléséhez",
+          "dump_apps": "Az alkalmazások listájának naplófájlba való kiírása induláskor (amennyiben lehetséges)",
+          "toggle_art_mode": "Art módra váltó bekapcsológomb (kizárólag Frame TV esetén)",
+          "power_on_delay": "Másodpercek a bekapcsolási állapot késleltetéséhez"
+        }
+      },
+      "save_exit": {
+        "title": "Save Configuration"
       }
     },
     "error": {
       "invalid_tv_list": "Érvénytelen formátum. Kérjük, ellenőrizze a dokumentációt."
+    }
+  },
+  "application_credentials": {
+    "description": "To use OAuth2 authentication with Samsung TV Smart, you need to create SmartThings developer credentials.\n\n**Setup Instructions:**\n\n1. Go to [SmartThings Developer Portal](https://developer.smartthings.com/)\n2. Sign in with your Samsung account\n3. Click **New Project** → Select **Automation for the Home**\n4. Give your project a name (e.g., 'Home Assistant TV')\n5. Click **Register App** in the sidebar\n6. Select **OAuth2 / Credentials**\n7. Fill in the form:\n   - **App Name**: Home Assistant Samsung TV\n   - **Redirect URI**: `{callback_url}`\n   - **Scopes**: Select `r:devices:*` and `x:devices:*`\n8. Click **Save** and copy your credentials below\n\n[SmartThings OAuth Documentation](https://developer.smartthings.com/docs/connected-services/oauth-integrations)"
+  },
+  "exceptions": {
+    "oauth2_implementation_unavailable": {
+      "message": "OAuth2 credentials are not configured. Please add SmartThings credentials in Settings → Devices & Services → Application Credentials."
     }
   }
 }
