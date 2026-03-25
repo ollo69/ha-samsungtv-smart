@@ -18,6 +18,8 @@ from homeassistant.const import (
     STATE_OFF,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.event import async_track_state_change_event
+from pysmartthings import Capability, Command
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -32,8 +34,11 @@ from .const import (
     DOMAIN,
     WS_PREFIX,
 )
+from . import async_get_samsungtv_api_key
 
 _LOGGER = logging.getLogger(__name__)
+
+COMPONENT_MAIN = "main"  # SmartThings component
 
 # Time to wait for TV to be ready after WOL
 TV_STARTUP_DELAY = 8  # seconds
@@ -56,21 +61,36 @@ async def async_setup_entry(
 
     # Get device name from config or entry title, fallback to host
     device_name = config.get(CONF_NAME) or entry.title or host
-    
+
     session = async_get_clientsession(hass)
-    
+
+    # SmartThings config (needed for power off via Command.OFF)
+    from .const import CONF_API_KEY, CONF_DEVICE_ID, CONF_AUTH_METHOD, CONF_OAUTH_TOKEN, AUTH_METHOD_OAUTH
+    api_key = config.get(CONF_API_KEY)
+    device_id = config.get(CONF_DEVICE_ID)
+    auth_method = config.get(CONF_AUTH_METHOD)
+    if auth_method == AUTH_METHOD_OAUTH and not api_key:
+        oauth_token = config.get(CONF_OAUTH_TOKEN)
+        if oauth_token and isinstance(oauth_token, dict):
+            api_key = oauth_token.get("access_token")
+
     entities = []
-    
-    # Create Power Switch — always created, delegates to media_player internally
-    entities.append(
-        SamsungTVPowerSwitch(
-            hass=hass,
-            entry=entry,
-            device_name=device_name,
-            device_unique_id=device_unique_id,
+
+    # Create Power Switch if SmartThings is configured (needed for reliable turn_off)
+    if api_key and device_id:
+        entities.append(
+            SamsungTVPowerSwitch(
+                hass=hass,
+                entry=entry,
+                device_id=device_id,
+                device_name=device_name,
+                session=session,
+                device_unique_id=device_unique_id,
+            )
         )
-    )
-    _LOGGER.debug("Power switch created for %s", device_name)
+        _LOGGER.debug("Power switch created for %s", device_name)
+    else:
+        _LOGGER.debug("SmartThings not configured, power switch not created for %s", device_name)
     
     # Check if art_api already exists (created by sensor platform)
     art_api = hass.data[DOMAIN][entry.entry_id].get(DATA_ART_API)
@@ -413,16 +433,40 @@ class SamsungTVPowerSwitch(SwitchEntity):
         self,
         hass: HomeAssistant,
         entry: ConfigEntry,
+        device_id: str,
         device_name: str,
+        session,
         device_unique_id: str,
     ) -> None:
         """Initialize the power switch."""
         self.hass = hass
         self._entry = entry
+        self._device_id = device_id
+        self._session = session
         self._device_name = device_name
         self._device_unique_id = device_unique_id
         self._attr_unique_id = f"{entry.entry_id}_power"
         self._media_player_entity_id: str | None = None
+
+    async def _get_st_client(self):
+        """Get SmartThings client with current (possibly refreshed) token."""
+        from pysmartthings import SmartThings
+        from .const import CONF_API_KEY, CONF_OAUTH_TOKEN, CONF_AUTH_METHOD, AUTH_METHOD_OAUTH
+
+        api_key = await async_get_samsungtv_api_key(self.hass, self._entry)
+        if not api_key:
+            config = self.hass.data[DOMAIN][self._entry.entry_id][DATA_CFG]
+            api_key = config.get(CONF_API_KEY)
+            if not api_key:
+                oauth_token = config.get(CONF_OAUTH_TOKEN)
+                if oauth_token and isinstance(oauth_token, dict):
+                    api_key = oauth_token.get("access_token")
+        if not api_key:
+            _LOGGER.warning("Power switch: no SmartThings API key available")
+            return None
+        st_client = SmartThings(session=self._session)
+        st_client.authenticate(api_key)
+        return st_client
 
     def _get_media_player_entity_id(self) -> str | None:
         """Get the media_player entity_id for this TV (cached after first lookup)."""
@@ -510,21 +554,31 @@ class SamsungTVPowerSwitch(SwitchEntity):
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn the TV off — delegates to media_player.turn_off."""
-        entity_id = self._get_media_player_entity_id()
-        if not entity_id:
-            _LOGGER.warning("Power switch: media_player entity not found for %s", self._device_name)
-            return
+        """Turn the TV off via SmartThings Command.OFF.
 
-        _LOGGER.debug("Power switch: delegating turn_off to %s", entity_id)
-        await self.hass.services.async_call(
-            "media_player",
-            "turn_off",
-            {"entity_id": entity_id},
-            blocking=True,
-        )
-        # State will update automatically when media_player changes
-        self.async_write_ha_state()
+        We use SmartThings directly here (not media_player.turn_off) because
+        SmartThings sends a hardware-level power-off signal that works
+        regardless of the TV current state — including when Art Mode is active
+        and media_player reports state "off" (which would make a plain
+        media_player.turn_off a no-op).
+        """
+        try:
+            st_client = await self._get_st_client()
+            if not st_client:
+                _LOGGER.error("Power switch: cannot turn off — SmartThings client unavailable")
+                return
+
+            await st_client.execute_device_command(
+                self._device_id,
+                Capability.SWITCH,
+                Command.OFF,
+                COMPONENT_MAIN,
+            )
+            self._attr_is_on = False
+            self.async_write_ha_state()
+            _LOGGER.debug("Power switch: TV turned off via SmartThings")
+        except Exception as ex:
+            _LOGGER.error("Power switch: error turning off TV: %s", ex)
 
     @callback
     def _handle_media_player_state_change(self, event) -> None:
@@ -535,14 +589,10 @@ class SamsungTVPowerSwitch(SwitchEntity):
         """Subscribe to media_player state changes when added to HA."""
         entity_id = self._get_media_player_entity_id()
         if entity_id:
-            @callback
-            def _filter(event):
-                return event.data.get("entity_id") == entity_id
-
             self.async_on_remove(
-                self.hass.bus.async_listen(
-                    "state_changed",
+                async_track_state_change_event(
+                    self.hass,
+                    [entity_id],
                     self._handle_media_player_state_change,
-                    event_filter=_filter,
                 )
             )
