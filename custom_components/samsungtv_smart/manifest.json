@@ -16,5 +16,5 @@
     "casttube>=0.2.1",
     "pysmartthings==3.5.0"
   ],
-  "version": "6.3.2"
+  "version": "6.3.3"
 }
