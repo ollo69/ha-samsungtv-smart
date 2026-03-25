@@ -23,6 +23,7 @@ import logging
 import os
 import random
 import ssl
+import time
 from typing import Any
 import uuid
 
@@ -82,6 +83,15 @@ class SamsungTVAsyncArt:
         self._pending_requests: dict[str, asyncio.Future] = {}
         self._recv_task: asyncio.Task | None = None
         self._connected = False
+        
+        # Connection failure tracking for exponential backoff (v6.3.5)
+        self._connection_failures = 0
+        self._max_connection_failures = 3  # Start backoff after 3 failures
+        self._backoff_until: float | None = None
+        self._last_connection_attempt: float = 0
+        
+        # Connection lock to prevent concurrent connection attempts (v6.3.5)
+        self._connection_lock = asyncio.Lock()
 
     def _get_uuid(self) -> str:
         """Generate a new UUID for art requests."""
@@ -106,59 +116,134 @@ class SamsungTVAsyncArt:
 
     async def open(self) -> bool:
         """Open WebSocket connection and start listening."""
-        if self._ws and not self._ws.closed:
-            return True
+        # Acquire lock to prevent concurrent connection attempts (v6.3.5)
+        async with self._connection_lock:
+            if self._ws and not self._ws.closed:
+                return True
 
-        try:
-            session = await self._get_session()
-            ssl_context = _get_ssl_context() if self._port == 8002 else None
-            
-            _LOGGER.debug("Art API: Connecting to %s", self._ws_url)
-            
-            self._ws = await session.ws_connect(
-                self._ws_url,
-                timeout=aiohttp.ClientTimeout(total=self._timeout),
-                ssl=ssl_context,
-            )
-            
-            # Wait for connection events
-            ready = False
-            for _ in range(5):  # Max 5 events to find ready
-                try:
-                    msg = await asyncio.wait_for(self._ws.receive(), timeout=self._timeout)
-                    if msg.type == aiohttp.WSMsgType.TEXT:
-                        response = json.loads(msg.data)
-                        event = response.get("event", "")
-                        _LOGGER.debug("Art API: Connection event: %s", event)
-                        
-                        if event == MS_CHANNEL_READY_EVENT:
-                            ready = True
-                            break
-                        elif event == MS_CHANNEL_CONNECT_EVENT:
-                            # Continue waiting for ready
-                            continue
-                    elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
-                        break
-                except asyncio.TimeoutError:
-                    break
-            
-            if not ready:
-                _LOGGER.warning("Art API: Did not receive ready event")
-                await self.close()
+            # Check if in backoff period (anti-saturation protection)
+            if self._backoff_until is not None:
+                if time.time() < self._backoff_until:
+                    remaining = int(self._backoff_until - time.time())
+                    _LOGGER.debug(
+                        "Art API: In backoff period, skipping connection attempt (%ds remaining)",
+                        remaining
+                    )
+                    return False
+                else:
+                    _LOGGER.info("Art API: Backoff period expired, resuming connection attempts")
+                    self._backoff_until = None
+                    self._connection_failures = 0
+
+            # Rate limit connection attempts (min 5 seconds between attempts)
+            time_since_last = time.time() - self._last_connection_attempt
+            if time_since_last < 5:
+                _LOGGER.debug(
+                    "Art API: Too soon since last attempt (%.1fs ago), waiting",
+                    time_since_last
+                )
                 return False
             
-            self._connected = True
-            
-            # Start the receive loop
-            self._recv_task = asyncio.create_task(self._receive_loop())
-            
-            _LOGGER.debug("Art API: Connected and listening")
-            return True
-            
-        except Exception as ex:
-            _LOGGER.warning("Art API: Connection failed: %s", ex)
-            await self.close()
-            return False
+            self._last_connection_attempt = time.time()
+
+            try:
+                session = await self._get_session()
+                ssl_context = _get_ssl_context() if self._port == 8002 else None
+                
+                _LOGGER.debug("Art API: Connecting to %s", self._ws_url)
+                
+                self._ws = await session.ws_connect(
+                    self._ws_url,
+                    timeout=aiohttp.ClientTimeout(total=self._timeout),
+                    ssl=ssl_context,
+                )
+                
+                # Wait for connection events
+                # Frame TV 2024 sends "connect" but may never send "ready"
+                connected = False
+                for _ in range(3):  # Max 3 events (reduced from 5)
+                    try:
+                        msg = await asyncio.wait_for(self._ws.receive(), timeout=2)  # Reduced timeout
+                        if msg.type == aiohttp.WSMsgType.TEXT:
+                            response = json.loads(msg.data)
+                            event = response.get("event", "")
+                            _LOGGER.debug("Art API: Connection event: %s", event)
+                            
+                            if event == MS_CHANNEL_READY_EVENT:
+                                # Perfect! Got ready event
+                                connected = True
+                                break
+                            elif event == MS_CHANNEL_CONNECT_EVENT:
+                                # Frame TV 2024 often only sends connect, accept it!
+                                _LOGGER.debug("Art API: Accepting connect event (Frame TV 2024 compatible)")
+                                connected = True
+                                break
+                        elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
+                            break
+                    except asyncio.TimeoutError:
+                        break
+                
+                if not connected:
+                    _LOGGER.warning("Art API: Did not receive connect/ready event, connection may not be stable")
+                    await self.close()
+                    
+                    # Track connection failure
+                    self._connection_failures += 1
+                    _LOGGER.warning(
+                        "Art API: Connection failure %d/%d",
+                        self._connection_failures,
+                        self._max_connection_failures
+                    )
+                    
+                    # Activate backoff if too many failures
+                    if self._connection_failures >= self._max_connection_failures:
+                        # Exponential backoff: 2, 5, 10, 20, 30 minutes (capped)
+                        backoff_minutes = min(2 ** (self._connection_failures - self._max_connection_failures + 1), 30)
+                        self._backoff_until = time.time() + (backoff_minutes * 60)
+                        _LOGGER.warning(
+                            "Art API: Too many connection failures (%d), entering %d minute backoff period",
+                            self._connection_failures,
+                            backoff_minutes
+                        )
+                    
+                    return False
+                
+                # Connection successful! Reset failure counter
+                if self._connection_failures > 0:
+                    _LOGGER.info("Art API: Connection successful, resetting failure counter")
+                    self._connection_failures = 0
+                
+                self._connected = True
+                
+                # Start the receive loop
+                self._recv_task = asyncio.create_task(self._receive_loop())
+                
+                _LOGGER.debug("Art API: Connected and listening")
+                return True
+                
+            except Exception as ex:
+                _LOGGER.warning("Art API: Connection failed: %s", ex)
+                await self.close()
+                
+                # Track connection failure
+                self._connection_failures += 1
+                _LOGGER.warning(
+                    "Art API: Connection failure %d/%d",
+                    self._connection_failures,
+                    self._max_connection_failures
+                )
+                
+                # Activate backoff if too many failures
+                if self._connection_failures >= self._max_connection_failures:
+                    backoff_minutes = min(2 ** (self._connection_failures - self._max_connection_failures + 1), 30)
+                    self._backoff_until = time.time() + (backoff_minutes * 60)
+                    _LOGGER.warning(
+                        "Art API: Too many connection failures (%d), entering %d minute backoff period",
+                        self._connection_failures,
+                        backoff_minutes
+                    )
+                
+                return False
 
     async def close(self) -> None:
         """Close the connection."""
@@ -297,13 +382,18 @@ class SamsungTVAsyncArt:
         timeout: float = 5.0,
     ) -> dict[str, Any] | None:
         """Send an art API request and wait for response."""
-        # Ensure connected
-        if not self._connected:
+        # Ensure connected - also reconnect if WebSocket was closed by TV
+        if not self._connected or not self._ws or self._ws.closed:
+            if self._ws and self._ws.closed:
+                _LOGGER.debug("Art API: WebSocket was closed, reconnecting...")
+                self._connected = False  # Reset flag to allow reconnection
             if not await self.open():
+                _LOGGER.debug("Art API: Failed to connect/reconnect")
                 return None
         
+        # Double-check connection after open()
         if not self._ws or self._ws.closed:
-            _LOGGER.debug("Art API: WebSocket not connected")
+            _LOGGER.debug("Art API: WebSocket still not connected after open()")
             return None
         
         # Set up request IDs (both old and new API style)
@@ -336,6 +426,8 @@ class SamsungTVAsyncArt:
         except Exception as ex:
             _LOGGER.debug("Art API: Error sending request: %s", ex)
             self._pending_requests.pop(request_key, None)
+            # Mark as disconnected to force reconnection on next request
+            self._connected = False
             return None
 
     # ==================== REST API Methods ====================
