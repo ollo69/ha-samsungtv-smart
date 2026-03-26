@@ -2844,6 +2844,7 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
             return {"error": "Frame TV not supported"}
         try:
             filters = await self._art_api.get_photo_filter_list()
+            _LOGGER.info("%s - Available photo filters: %s", self.entity_id, filters)
             return {"filters": filters}
         except Exception as ex:
             _LOGGER.error("Error getting photo filter list: %s", ex)
@@ -2856,7 +2857,14 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
             return {"error": "Frame TV not supported"}
         try:
             matte_types, matte_colors = await self._art_api.get_matte_list(include_color=True)
-            return {"matte_types": matte_types, "matte_colors": matte_colors}
+            result = {"matte_types": matte_types, "matte_colors": matte_colors}
+            _LOGGER.info(
+                "%s - Available matte types: %s | Available matte colors: %s",
+                self.entity_id,
+                matte_types,
+                matte_colors,
+            )
+            return result
         except Exception as ex:
             _LOGGER.error("Error getting matte list: %s", ex)
             return {"error": str(ex)}
