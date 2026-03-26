@@ -887,11 +887,17 @@ class SamsungTVWS:
             if ping.ping(self._ping_port):
                 if not self._is_connected:
                     self._start_client()
+                    # Notify HA immediately when TV comes back online
+                    if self._status_callback:
+                        self._status_callback()
                 else:
                     self._check_remote()
             else:
                 if self._is_connected:
                     self.stop_client()
+                    # Notify HA immediately when TV goes offline
+                    if self._status_callback:
+                        self._status_callback()
             time.sleep(1.0)
 
     def _check_remote(self):
