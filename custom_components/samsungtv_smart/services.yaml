@@ -290,7 +290,7 @@ art_change_matte:
         text:
     matte_id:
       name: Matte ID
-      description: "Matte style ID (format: type_color). Types: none, modernthin, modern, modernwide, shadowboxthin, shadowbox, shadowboxwide, panoramic, flexible. Colors: black, neutral, antique, warm, polar, sand, seafoam, sage, burgandy, navy, apricot, byzantine, lavender, redorange"
+      description: "Matte style ID (format: type_color). Types: none, modernthin, modern, modernwide, flexible, shadowbox, panoramic, triptych, mix, squares. Colors: black, neutral, antique, warm, polar, sand, seafoam, sage, burgandy, navy, apricot, byzantine, lavender, redorange, skyblue, turquoise"
       required: true
       example: "modern_apricot"
       selector:
