@@ -1,7 +1,6 @@
 {
   "name": "SamsungTV Smart",
   "content_in_root": false,
-  "zip_release": true,
-  "filename": "samsungtv_smart.zip",
+  "zip_release": false,
   "homeassistant": "2025.6.0"
 }

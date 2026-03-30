@@ -1,0 +1,167 @@
+# ============================================
+# Frame Art Gallery Configuration
+# ============================================
+# Add this to your configuration.yaml
+#
+# This configuration provides:
+# - Template sensors for gallery management
+# - Input helpers for UI controls
+# - Folder sensors to track thumbnails
+# ============================================
+
+# ===== SENSORS WITH PLATFORM =====
+sensor:
+  # Track thumbnail files in store directory
+  - platform: folder
+    folder: /config/www/frame_art/store
+    filter: "*.jpg"
+    
+  # Track thumbnail files in personal directory  
+  - platform: folder
+    folder: /config/www/frame_art/personal
+    filter: "*.jpg"
+
+# ===== TEMPLATE SENSORS =====
+template:
+  - sensor:
+      # Personal Photo Gallery
+      - name: "Frame Art Personal Gallery"
+        unique_id: frame_art_personal_gallery
+        state: >
+          {% set list = state_attr('sensor.samsung_frame_art_list', 'content_list') or [] %}
+          {% set personal = list | selectattr('category_id', 'eq', 'MY-C0002') | list %}
+          {{ personal | length }}
+        attributes:
+          images: >
+            {% set ns = namespace(images=[]) %}
+            {% for item in state_attr('sensor.samsung_frame_art_list', 'content_list') or [] %}
+              {% if item.category_id == 'MY-C0002' %}
+                {% set ns.images = ns.images + [{
+                  'path': '/local/frame_art/personal/' ~ item.content_id ~ '.jpg',
+                  'filename': item.content_id ~ '.jpg',
+                  'name': item.content_id,
+                  'content_id': item.content_id
+                }] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.images }}
+
+      # Art Store Gallery
+      - name: "Frame Art Store Gallery"
+        unique_id: frame_art_store_gallery
+        state: >
+          {% set list = state_attr('sensor.samsung_frame_art_list', 'content_list') or [] %}
+          {% set store = list | selectattr('content_id', 'match', '^SAM-') | list %}
+          {{ store | length }}
+        attributes:
+          images: >
+            {% set ns = namespace(images=[]) %}
+            {% for item in state_attr('sensor.samsung_frame_art_list', 'content_list') or [] %}
+              {% if item.content_id.startswith('SAM-') %}
+                {% set ns.images = ns.images + [{
+                  'path': '/local/frame_art/store/' ~ item.content_id ~ '.jpg',
+                  'filename': item.content_id ~ '.jpg',
+                  'name': item.content_id,
+                  'content_id': item.content_id
+                }] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.images }}
+      
+      # Favorites Gallery
+      - name: "Frame Art Favorites Gallery"
+        unique_id: frame_art_favorites_gallery
+        state: >
+          {% set list = state_attr('sensor.samsung_frame_art_list', 'content_list') or [] %}
+          {% set favorites = list | selectattr('category_id', 'eq', 'MY-C0004') | list %}
+          {{ favorites | length }}
+        attributes:
+          images: >
+            {% set ns = namespace(images=[]) %}
+            {% for item in state_attr('sensor.samsung_frame_art_list', 'content_list') or [] %}
+              {% if item.category_id == 'MY-C0004' %}
+                {% set subdir = 'personal' if item.content_id.startswith('MY_F') else ('store' if item.content_id.startswith('SAM-') else 'other') %}
+                {% set ns.images = ns.images + [{
+                  'path': '/local/frame_art/' ~ subdir ~ '/' ~ item.content_id ~ '.jpg',
+                  'filename': item.content_id ~ '.jpg',
+                  'name': item.content_id,
+                  'content_id': item.content_id,
+                  'subdirectory': subdir
+                }] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.images }}
+
+# ===== INPUT HELPERS =====
+input_number:
+  # Brightness control slider
+  frame_brightness:
+    name: Frame TV Brightness
+    min: 0
+    max: 100
+    step: 10
+    initial: 50
+    icon: mdi:brightness-6
+
+# ===== INPUT SELECTS =====
+input_select:
+  # Combined matte style selector (for backward compatibility)
+  frame_matte:
+    name: Frame Style
+    options:
+      - none
+      - shadowbox_polar
+      - shadowbox_black
+      - flexible_polar
+      - flexible_black
+      - modernthin_neutral
+      - modernthin_black
+    initial: shadowbox_polar
+    icon: mdi:border-style
+
+  # Matte type selector (separate control)
+  frame_matte_type:
+    name: Frame Type
+    options:
+      - none
+      - modernthin
+      - modern
+      - modernwide
+      - shadowboxthin
+      - shadowbox
+      - shadowboxwide
+      - panoramic
+      - flexible
+    initial: shadowbox
+    icon: mdi:border-style
+
+  # Matte color selector (separate control)
+  frame_matte_color:
+    name: Frame Color
+    options:
+      - black
+      - neutral
+      - antique
+      - warm
+      - polar
+      - sand
+      - seafoam
+      - sage
+      - burgandy
+      - navy
+      - apricot
+      - byzantine
+      - lavender
+      - redorange
+    initial: polar
+    icon: mdi:palette
+
+  # Category selector for filtering
+  frame_category:
+    name: Frame Category
+    options:
+      - My Photos
+      - Favorites
+      - All
+    initial: My Photos
+    icon: mdi:folder-image

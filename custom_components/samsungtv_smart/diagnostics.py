@@ -8,9 +8,9 @@ from homeassistant.const import CONF_API_KEY, CONF_ID, CONF_MAC, CONF_TOKEN
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
-from .const import DOMAIN
+from .const import DOMAIN, CONF_OAUTH_TOKEN
 
-TO_REDACT = {CONF_API_KEY, CONF_MAC, CONF_TOKEN}
+TO_REDACT = {CONF_API_KEY, CONF_MAC, CONF_TOKEN, CONF_OAUTH_TOKEN}
 
 
 async def async_get_config_entry_diagnostics(

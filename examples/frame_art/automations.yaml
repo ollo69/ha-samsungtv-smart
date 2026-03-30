@@ -1,0 +1,383 @@
+# ============================================
+# Frame Art Gallery Automations
+# ============================================
+# Add these automations to your automations.yaml
+#
+# These automations provide:
+# - Time-based brightness and artwork changes
+# - Auto-update thumbnail cache
+# - Dynamic matte changes
+# - Motion-triggered artwork rotation
+# ============================================
+
+# ============================================
+# TIME-BASED ROUTINES
+# ============================================
+
+# Morning routine - bright and cheerful
+- id: frame_art_morning
+  alias: "Frame Art: Morning Routine"
+  description: "Activate morning brightness and artwork at 7 AM"
+  trigger:
+    - platform: time
+      at: "07:00:00"
+  condition:
+    - condition: state
+      entity_id: media_player.samsung_frame_tv
+      state: "on"
+  action:
+    - service: script.frame_art_morning_routine
+
+# Evening routine - dim and calming
+- id: frame_art_evening
+  alias: "Frame Art: Evening Routine"
+  description: "Activate evening brightness and artwork at 8 PM"
+  trigger:
+    - platform: time
+      at: "20:00:00"
+  condition:
+    - condition: state
+      entity_id: media_player.samsung_frame_tv
+      state: "on"
+  action:
+    - service: script.frame_art_evening_routine
+
+# Night mode - very dim
+- id: frame_art_night
+  alias: "Frame Art: Night Mode"
+  description: "Set minimal brightness at 11 PM"
+  trigger:
+    - platform: time
+      at: "23:00:00"
+  condition:
+    - condition: state
+      entity_id: media_player.samsung_frame_tv
+      state: "on"
+  action:
+    - service: script.frame_art_night_mode
+
+# ============================================
+# AUTO-UPDATE THUMBNAILS
+# ============================================
+
+# Daily thumbnail update - smart caching
+- id: frame_art_auto_update
+  alias: "Frame Art: Auto Update Thumbnails"
+  description: "Update thumbnail cache daily at 3 AM (skips existing files)"
+  trigger:
+    - platform: time
+      at: "03:00:00"
+  condition:
+    - condition: state
+      entity_id: media_player.samsung_frame_tv
+      state: "on"
+  action:
+    - service: samsungtv_smart.art_get_thumbnails_batch
+      data:
+        entity_id: media_player.samsung_frame_tv
+        force_download: false  # Skip existing files - fast!
+
+# Weekly full re-download - ensure freshness
+- id: frame_art_weekly_refresh
+  alias: "Frame Art: Weekly Full Refresh"
+  description: "Force re-download all thumbnails every Sunday at 2 AM"
+  trigger:
+    - platform: time
+      at: "02:00:00"
+  condition:
+    - condition: time
+      weekday:
+        - sun
+    - condition: state
+      entity_id: media_player.samsung_frame_tv
+      state: "on"
+  action:
+    - service: samsungtv_smart.art_get_thumbnails_batch
+      data:
+        entity_id: media_player.samsung_frame_tv
+        force_download: true  # Re-download everything
+
+# ============================================
+# BRIGHTNESS SLIDER SYNC
+# ============================================
+
+# Sync brightness when slider changes
+- id: frame_art_brightness_slider
+  alias: "Frame Art: Sync Brightness from Slider"
+  description: "Apply brightness changes from input_number to Frame TV"
+  trigger:
+    - platform: state
+      entity_id: input_number.frame_brightness
+  condition:
+    - condition: state
+      entity_id: media_player.samsung_frame_tv
+      state: "on"
+  action:
+    - service: samsungtv_smart.art_set_brightness
+      data:
+        entity_id: media_player.samsung_frame_tv
+        brightness: "{{ states('input_number.frame_brightness') | int }}"
+
+# ============================================
+# MATTE (FRAME STYLE) CHANGES
+# ============================================
+
+# Apply matte when type or color changes
+- id: frame_art_matte_change
+  alias: "Frame Art: Apply Matte on Change"
+  description: "Apply new matte when type or color selector changes"
+  trigger:
+    - platform: state
+      entity_id: input_select.frame_matte_type
+    - platform: state
+      entity_id: input_select.frame_matte_color
+  condition:
+    - condition: state
+      entity_id: media_player.samsung_frame_tv
+      state: "on"
+  action:
+    - service: script.frame_art_set_matte
+
+# Apply matte from combined selector
+- id: frame_art_matte_apply
+  alias: "Frame Art: Apply Matte from Selector"
+  description: "Apply matte when combined selector changes"
+  trigger:
+    - platform: state
+      entity_id: input_select.frame_matte
+  condition:
+    - condition: state
+      entity_id: media_player.samsung_frame_tv
+      state: "on"
+  action:
+    - service: script.frame_art_apply_matte
+
+# ============================================
+# MOTION-BASED ARTWORK ROTATION
+# ============================================
+
+# Random artwork on motion detection
+- id: frame_art_motion_random
+  alias: "Frame Art: Random on Motion"
+  description: "Display random artwork when motion detected"
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.living_room_motion
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: media_player.samsung_frame_tv
+      state: "on"
+    # Rate limit: don't change more than once per hour
+    - condition: template
+      value_template: >
+        {{ (as_timestamp(now()) - as_timestamp(state_attr('automation.frame_art_motion_random', 'last_triggered')) | default(0)) > 3600 }}
+  action:
+    - service: script.frame_art_random_favorite
+
+# ============================================
+# PRESENCE-BASED ROUTINES
+# ============================================
+
+# Welcome home - activate Frame TV
+- id: frame_art_welcome_home
+  alias: "Frame Art: Welcome Home"
+  description: "Activate Art Mode when arriving home"
+  trigger:
+    - platform: state
+      entity_id: person.your_name
+      to: "home"
+  condition:
+    - condition: state
+      entity_id: media_player.samsung_frame_tv
+      state: "off"
+    # Only during daytime
+    - condition: sun
+      after: sunrise
+      before: sunset
+  action:
+    - service: script.launch_art_mode
+    - delay: "00:00:05"
+    - service: script.frame_art_random_favorite
+
+# Goodnight - dim Frame TV
+- id: frame_art_goodnight
+  alias: "Frame Art: Goodnight Routine"
+  description: "Dim Frame TV when going to bed"
+  trigger:
+    - platform: state
+      entity_id: input_boolean.bedtime_mode
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: media_player.samsung_frame_tv
+      state: "on"
+  action:
+    - service: samsungtv_smart.art_set_brightness
+      data:
+        entity_id: media_player.samsung_frame_tv
+        brightness: 5
+
+# ============================================
+# WEATHER-BASED ARTWORK
+# ============================================
+
+# Sunny day artwork
+- id: frame_art_sunny_day
+  alias: "Frame Art: Sunny Day Artwork"
+  description: "Display bright artwork on sunny days"
+  trigger:
+    - platform: state
+      entity_id: weather.home
+      to: "sunny"
+  condition:
+    - condition: state
+      entity_id: media_player.samsung_frame_tv
+      state: "on"
+    - condition: time
+      after: "08:00:00"
+      before: "20:00:00"
+  action:
+    # Select a bright, sunny image (replace with your preferred content_id)
+    - service: samsungtv_smart.art_select_image
+      data:
+        entity_id: media_player.samsung_frame_tv
+        content_id: "MY_F0010"  # Your sunny day image
+        show: true
+
+# Rainy day artwork
+- id: frame_art_rainy_day
+  alias: "Frame Art: Rainy Day Artwork"
+  description: "Display cozy artwork on rainy days"
+  trigger:
+    - platform: state
+      entity_id: weather.home
+      to: "rainy"
+  condition:
+    - condition: state
+      entity_id: media_player.samsung_frame_tv
+      state: "on"
+  action:
+    # Select a cozy, rainy day image
+    - service: samsungtv_smart.art_select_image
+      data:
+        entity_id: media_player.samsung_frame_tv
+        content_id: "MY_F0011"  # Your rainy day image
+        show: true
+
+# ============================================
+# SPECIAL OCCASIONS
+# ============================================
+
+# Birthday artwork
+- id: frame_art_birthday
+  alias: "Frame Art: Birthday Display"
+  description: "Display birthday artwork on birthdays"
+  trigger:
+    - platform: calendar
+      event: start
+      entity_id: calendar.birthdays
+  condition:
+    - condition: state
+      entity_id: media_player.samsung_frame_tv
+      state: "on"
+  action:
+    - service: samsungtv_smart.art_select_image
+      data:
+        entity_id: media_player.samsung_frame_tv
+        content_id: "MY_F0020"  # Your birthday image
+        show: true
+    - service: samsungtv_smart.art_set_brightness
+      data:
+        entity_id: media_player.samsung_frame_tv
+        brightness: 100
+
+# Holiday artwork - Christmas
+- id: frame_art_christmas
+  alias: "Frame Art: Christmas Display"
+  description: "Display Christmas artwork during December"
+  trigger:
+    - platform: time
+      at: "00:00:01"
+  condition:
+    - condition: template
+      value_template: "{{ now().month == 12 }}"
+    - condition: state
+      entity_id: media_player.samsung_frame_tv
+      state: "on"
+  action:
+    - service: samsungtv_smart.art_select_image
+      data:
+        entity_id: media_player.samsung_frame_tv
+        content_id: "MY_F0030"  # Your Christmas image
+        show: true
+
+# ============================================
+# MAINTENANCE & MONITORING
+# ============================================
+
+# Notify on thumbnail download completion
+- id: frame_art_download_complete
+  alias: "Frame Art: Download Complete Notification"
+  description: "Notify when thumbnail batch download completes"
+  trigger:
+    - platform: state
+      entity_id: sensor.samsung_frame_art
+      attribute: last_art_response
+  condition:
+    - condition: template
+      value_template: >
+        {{ trigger.to_state.attributes.last_art_response.service == 'art_get_thumbnails_batch' }}
+  action:
+    - service: persistent_notification.create
+      data:
+        title: "Frame Art: Download Complete"
+        message: >
+          Downloaded: {{ trigger.to_state.attributes.last_art_response.downloaded }}
+          Skipped: {{ trigger.to_state.attributes.last_art_response.skipped }}
+          Failed: {{ trigger.to_state.attributes.last_art_response.failed }}
+
+# Alert on high failure rate
+- id: frame_art_high_failure_alert
+  alias: "Frame Art: High Failure Rate Alert"
+  description: "Alert if thumbnail download failure rate is high"
+  trigger:
+    - platform: state
+      entity_id: sensor.samsung_frame_art
+      attribute: last_art_response
+  condition:
+    - condition: template
+      value_template: >
+        {% set resp = trigger.to_state.attributes.last_art_response %}
+        {{ resp.service == 'art_get_thumbnails_batch' and 
+           resp.total_artworks > 0 and
+           (resp.failed / resp.total_artworks) > 0.1 }}
+  action:
+    - service: persistent_notification.create
+      data:
+        title: "Frame Art: High Failure Rate"
+        message: >
+          Warning: {{ (trigger.to_state.attributes.last_art_response.failed / 
+                       trigger.to_state.attributes.last_art_response.total_artworks * 100) | round(0) }}% 
+          of thumbnails failed to download. Check TV connection.
+
+# ============================================
+# ENERGY SAVING
+# ============================================
+
+# Dim during off-peak hours
+- id: frame_art_energy_saving
+  alias: "Frame Art: Energy Saving Mode"
+  description: "Reduce brightness during off-peak hours to save energy"
+  trigger:
+    - platform: time
+      at: "22:00:00"
+  condition:
+    - condition: state
+      entity_id: media_player.samsung_frame_tv
+      state: "on"
+  action:
+    - service: samsungtv_smart.art_set_brightness
+      data:
+        entity_id: media_player.samsung_frame_tv
+        brightness: 20

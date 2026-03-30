@@ -1,0 +1,411 @@
+# ============================================
+# Frame Art Gallery - Lovelace Dashboard
+# ============================================
+# Complete dashboard for Frame Art Gallery
+# Includes:
+# - Control panel for brightness and matte
+# - Personal photos gallery
+# - Art Store gallery
+# - Favorites gallery
+# - Quick action buttons
+# ============================================
+
+title: Frame Art Gallery
+icon: mdi:image-frame
+path: frame-art
+
+cards:
+  # ============================================
+  # CONTROL PANEL
+  # ============================================
+  
+  - type: vertical-stack
+    cards:
+      # Current Artwork Display
+      - type: picture-entity
+        entity: media_player.samsung_frame_tv
+        name: Current Artwork
+        show_state: false
+        tap_action:
+          action: none
+      
+      # Frame TV Status
+      - type: entities
+        title: Frame TV Status
+        entities:
+          - entity: sensor.samsung_frame_art
+            name: Art Mode
+            icon: mdi:palette
+          - entity: sensor.samsung_frame_art
+            type: attribute
+            attribute: current_content_id
+            name: Current Artwork ID
+          - entity: sensor.samsung_frame_art
+            type: attribute
+            attribute: matte_id
+            name: Current Matte
+
+      # Brightness Control
+      - type: entities
+        title: Brightness Control
+        entities:
+          - entity: input_number.frame_brightness
+            name: Brightness
+            icon: mdi:brightness-6
+
+      # Matte Style Control
+      - type: entities
+        title: Frame Style
+        entities:
+          - entity: input_select.frame_matte_type
+            name: Frame Type
+          - entity: input_select.frame_matte_color
+            name: Frame Color
+          - type: button
+            name: Apply Style
+            icon: mdi:check
+            action_name: Apply
+            tap_action:
+              action: call-service
+              service: script.frame_art_set_matte
+
+      # Quick Actions
+      - type: horizontal-stack
+        cards:
+          - type: button
+            name: Random
+            icon: mdi:shuffle
+            tap_action:
+              action: call-service
+              service: script.frame_art_random_favorite
+            
+          - type: button
+            name: Morning
+            icon: mdi:weather-sunny
+            tap_action:
+              action: call-service
+              service: script.frame_art_morning_routine
+            
+          - type: button
+            name: Evening
+            icon: mdi:weather-night
+            tap_action:
+              action: call-service
+              service: script.frame_art_evening_routine
+            
+          - type: button
+            name: Refresh
+            icon: mdi:refresh
+            tap_action:
+              action: call-service
+              service: script.frame_art_refresh_list
+
+  # ============================================
+  # PERSONAL PHOTOS GALLERY
+  # ============================================
+  
+  - type: custom:auto-entities
+    card:
+      type: grid
+      columns: 4
+      square: true
+      title: 📷 My Photos
+    filter:
+      template: |
+        {% for img in state_attr('sensor.frame_art_personal_gallery', 'images') or [] %}
+          {{
+            {
+              'type': 'picture',
+              'image': img.path,
+              'tap_action': {
+                'action': 'call-service',
+                'service': 'samsungtv_smart.art_select_image',
+                'service_data': {
+                  'entity_id': 'media_player.samsung_frame_tv',
+                  'content_id': img.content_id,
+                  'show': true
+                }
+              },
+              'hold_action': {
+                'action': 'more-info'
+              }
+            }
+          }},
+        {% endfor %}
+    show_empty: true
+    card_param: cards
+
+  # ============================================
+  # ART STORE GALLERY
+  # ============================================
+  
+  - type: custom:auto-entities
+    card:
+      type: grid
+      columns: 4
+      square: true
+      title: 🎨 Art Store
+    filter:
+      template: |
+        {% for img in state_attr('sensor.frame_art_store_gallery', 'images') or [] %}
+          {{
+            {
+              'type': 'picture',
+              'image': img.path,
+              'tap_action': {
+                'action': 'call-service',
+                'service': 'samsungtv_smart.art_select_image',
+                'service_data': {
+                  'entity_id': 'media_player.samsung_frame_tv',
+                  'content_id': img.content_id,
+                  'show': true
+                }
+              }
+            }
+          }},
+        {% endfor %}
+    show_empty: true
+    card_param: cards
+
+  # ============================================
+  # FAVORITES GALLERY
+  # ============================================
+  
+  - type: custom:auto-entities
+    card:
+      type: grid
+      columns: 4
+      square: true
+      title: ⭐ Favorites
+    filter:
+      template: |
+        {% for img in state_attr('sensor.frame_art_favorites_gallery', 'images') or [] %}
+          {{
+            {
+              'type': 'picture',
+              'image': img.path,
+              'tap_action': {
+                'action': 'call-service',
+                'service': 'samsungtv_smart.art_select_image',
+                'service_data': {
+                  'entity_id': 'media_player.samsung_frame_tv',
+                  'content_id': img.content_id,
+                  'show': true
+                }
+              }
+            }
+          }},
+        {% endfor %}
+    show_empty: true
+    card_param: cards
+
+  # ============================================
+  # THUMBNAIL MANAGEMENT
+  # ============================================
+  
+  - type: entities
+    title: Thumbnail Management
+    entities:
+      - entity: sensor.www_frame_art_personal
+        name: Personal Photos Downloaded
+        icon: mdi:folder-image
+      
+      - entity: sensor.www_frame_art_store
+        name: Art Store Images Downloaded
+        icon: mdi:folder-image
+      
+      - type: button
+        name: Download All
+        icon: mdi:download
+        action_name: Download
+        tap_action:
+          action: call-service
+          service: script.frame_art_download_all
+      
+      - type: button
+        name: Download Personal
+        icon: mdi:account-image
+        action_name: Download
+        tap_action:
+          action: call-service
+          service: script.frame_art_download_personal
+      
+      - type: button
+        name: Download Favorites
+        icon: mdi:star-box
+        action_name: Download
+        tap_action:
+          action: call-service
+          service: script.frame_art_download_favorites
+
+# ============================================
+# ALTERNATIVE LAYOUTS
+# ============================================
+
+# ====== COMPACT GALLERY (3 columns) ======
+# Uncomment to use instead of 4-column layout
+
+# - type: custom:auto-entities
+#   card:
+#     type: grid
+#     columns: 3
+#     square: false
+#     title: 📷 Compact Gallery
+#   filter:
+#     template: |
+#       {% for img in state_attr('sensor.frame_art_personal_gallery', 'images') or [] %}
+#         {{
+#           {
+#             'type': 'picture',
+#             'image': img.path,
+#             'tap_action': {
+#               'action': 'call-service',
+#               'service': 'samsungtv_smart.art_select_image',
+#               'service_data': {
+#                 'entity_id': 'media_player.samsung_frame_tv',
+#                 'content_id': img.content_id,
+#                 'show': true
+#               }
+#             }
+#           }
+#         }},
+#       {% endfor %}
+
+# ====== LARGE THUMBNAILS (2 columns) ======
+# Good for mobile or detailed viewing
+
+# - type: custom:auto-entities
+#   card:
+#     type: grid
+#     columns: 2
+#     square: true
+#     title: 🖼️ Large View
+#   filter:
+#     template: |
+#       {% for img in state_attr('sensor.frame_art_favorites_gallery', 'images') or [] %}
+#         {{
+#           {
+#             'type': 'picture',
+#             'image': img.path,
+#             'tap_action': {
+#               'action': 'call-service',
+#               'service': 'samsungtv_smart.art_select_image',
+#               'service_data': {
+#                 'entity_id': 'media_player.samsung_frame_tv',
+#                 'content_id': img.content_id,
+#                 'show': true
+#               }
+#             }
+#           }
+#         }},
+#       {% endfor %}
+
+# ====== LIST VIEW WITH DETAILS ======
+# Shows content IDs and metadata
+
+# - type: custom:auto-entities
+#   card:
+#     type: entities
+#     title: 📋 Artwork List
+#   filter:
+#     template: |
+#       {% for img in state_attr('sensor.frame_art_personal_gallery', 'images') or [] %}
+#         {{
+#           {
+#             'type': 'button',
+#             'name': img.content_id,
+#             'icon': 'mdi:image',
+#             'tap_action': {
+#               'action': 'call-service',
+#               'service': 'samsungtv_smart.art_select_image',
+#               'service_data': {
+#                 'entity_id': 'media_player.samsung_frame_tv',
+#                 'content_id': img.content_id,
+#                 'show': true
+#               }
+#             }
+#           }
+#         }},
+#       {% endfor %}
+
+# ====== SLIDESHOW CONTROLS ======
+
+# - type: entities
+#   title: Slideshow Controls
+#   entities:
+#     - type: button
+#       name: Start Personal Photos
+#       icon: mdi:play
+#       tap_action:
+#         action: call-service
+#         service: script.frame_art_slideshow_personal
+#     
+#     - type: button
+#       name: Start Favorites
+#       icon: mdi:play
+#       tap_action:
+#         action: call-service
+#         service: script.frame_art_slideshow_favorites
+#     
+#     - type: button
+#       name: Stop Slideshow
+#       icon: mdi:stop
+#       tap_action:
+#         action: call-service
+#         service: script.frame_art_slideshow_stop
+
+# ============================================
+# MOBILE-OPTIMIZED VIEW
+# ============================================
+# For mobile devices, use this simpler layout
+
+# - type: vertical-stack
+#   cards:
+#     # Quick controls
+#     - type: horizontal-stack
+#       cards:
+#         - type: button
+#           name: Bright
+#           icon: mdi:brightness-7
+#           tap_action:
+#             action: call-service
+#             service: input_number.set_value
+#             service_data:
+#               entity_id: input_number.frame_brightness
+#               value: 80
+#         
+#         - type: button
+#           name: Dim
+#           icon: mdi:brightness-4
+#           tap_action:
+#             action: call-service
+#             service: input_number.set_value
+#             service_data:
+#               entity_id: input_number.frame_brightness
+#               value: 30
+#     
+#     # Simplified 2-column gallery
+#     - type: custom:auto-entities
+#       card:
+#         type: grid
+#         columns: 2
+#         square: true
+#       filter:
+#         template: |
+#           {% for img in state_attr('sensor.frame_art_favorites_gallery', 'images') or [] %}
+#             {{
+#               {
+#                 'type': 'picture',
+#                 'image': img.path,
+#                 'tap_action': {
+#                   'action': 'call-service',
+#                   'service': 'samsungtv_smart.art_select_image',
+#                   'service_data': {
+#                     'entity_id': 'media_player.samsung_frame_tv',
+#                     'content_id': img.content_id,
+#                     'show': true
+#                   }
+#                 }
+#               }
+#             }},
+#           {% endfor %}

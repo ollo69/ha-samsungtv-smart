@@ -4,7 +4,7 @@
   "after_dependencies": ["smartthings"],
   "codeowners": ["@jaruba", "@ollo69", "@screwdgeh"],
   "config_flow": true,
-  "dependencies": ["http"],
+  "dependencies": ["http", "application_credentials"],
   "documentation": "https://github.com/ollo69/ha-samsungtv-smart",
   "integration_type": "device",
   "iot_class": "cloud_polling",
@@ -13,7 +13,8 @@
     "websocket-client!=1.4.0,>=0.58.0",
     "wakeonlan>=2.0.0",
     "aiofiles>=0.8.0",
-    "casttube>=0.2.1"
+    "casttube>=0.2.1",
+    "pysmartthings==3.5.0"
   ],
-  "version": "0.14.5"
+  "version": "6.4.1"
 }

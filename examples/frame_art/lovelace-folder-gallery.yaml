@@ -1,0 +1,334 @@
+# ============================================
+# Frame Art Gallery - Folder Gallery Card
+# ============================================
+# This example uses the folder-gallery-card
+# custom Lovelace card for a cleaner,
+# more performant gallery experience.
+#
+# Installation:
+# 1. Copy folder-gallery-card.js to:
+#    /config/www/community/folder-gallery-card/
+# 2. Add resource in Lovelace (see below)
+# 3. Add template sensors (configuration.yaml)
+# 4. Use this dashboard
+# ============================================
+
+# ============================================
+# RESOURCE CONFIGURATION
+# ============================================
+# Add this to configuration.yaml:
+#
+# lovelace:
+#   resources:
+#     - url: /local/community/folder-gallery-card/folder-gallery-card.js
+#       type: module
+
+# ============================================
+# COMPLETE DASHBOARD
+# ============================================
+
+title: Frame Art Gallery
+icon: mdi:image-frame
+path: frame-art-gallery
+
+cards:
+  # ============================================
+  # STATUS & CONTROLS
+  # ============================================
+  
+  - type: vertical-stack
+    cards:
+      # Current Artwork Display
+      - type: picture-entity
+        entity: media_player.samsung_frame_tv
+        name: Current Artwork
+        show_state: false
+        tap_action:
+          action: none
+      
+      # Frame TV Status
+      - type: entities
+        title: Frame TV Status
+        entities:
+          - entity: sensor.samsung_frame_art
+            name: Art Mode
+            icon: mdi:palette
+          - entity: sensor.samsung_frame_art
+            type: attribute
+            attribute: current_content_id
+            name: Current Artwork ID
+          - entity: sensor.samsung_frame_art
+            type: attribute
+            attribute: matte_id
+            name: Current Matte
+          - entity: sensor.samsung_frame_art
+            type: attribute
+            attribute: brightness
+            name: Brightness
+
+      # Quick Controls
+      - type: horizontal-stack
+        cards:
+          - type: button
+            name: Art Mode
+            icon: mdi:palette
+            tap_action:
+              action: call-service
+              service: samsungtv_smart.set_art_mode
+              target:
+                entity_id: media_player.samsung_frame_tv
+          
+          - type: button
+            name: Random
+            icon: mdi:shuffle
+            tap_action:
+              action: call-service
+              service: script.frame_art_random_favorite
+          
+          - type: button
+            name: Refresh
+            icon: mdi:refresh
+            tap_action:
+              action: call-service
+              service: samsungtv_smart.art_available
+              target:
+                entity_id: media_player.samsung_frame_tv
+          
+          - type: button
+            name: Bright
+            icon: mdi:brightness-7
+            tap_action:
+              action: call-service
+              service: samsungtv_smart.art_set_brightness
+              target:
+                entity_id: media_player.samsung_frame_tv
+              data:
+                brightness: 80
+          
+          - type: button
+            name: Dim
+            icon: mdi:brightness-4
+            tap_action:
+              action: call-service
+              service: samsungtv_smart.art_set_brightness
+              target:
+                entity_id: media_player.samsung_frame_tv
+              data:
+                brightness: 30
+
+  # ============================================
+  # PERSONAL PHOTOS GALLERY
+  # ============================================
+  
+  - type: custom:folder-gallery-card
+    title: "📷 My Personal Photos"
+    sensor: sensor.frame_art_personal_gallery
+    columns: 4
+    image_height: 180px
+    gap: 10px
+    border_radius: 12px
+    show_filename: true
+    tap_action: lightbox  # Click to open lightbox
+    hold_action:  # Long press to display on TV
+      service: samsungtv_smart.art_select_image
+      target:
+        entity_id: media_player.samsung_frame_tv
+      data:
+        content_id: "{{content_id}}"
+        show: true
+
+  # ============================================
+  # ART STORE GALLERY
+  # ============================================
+  
+  - type: custom:folder-gallery-card
+    title: "🎨 Samsung Art Store"
+    sensor: sensor.frame_art_store_gallery
+    columns: 5
+    image_height: 150px
+    gap: 8px
+    border_radius: 10px
+    show_filename: false
+    tap_action: action  # Click to display directly
+    action:
+      service: samsungtv_smart.art_select_image
+      target:
+        entity_id: media_player.samsung_frame_tv
+      data:
+        content_id: "{{content_id}}"
+        show: true
+
+  # ============================================
+  # FAVORITES GALLERY
+  # ============================================
+  
+  - type: custom:folder-gallery-card
+    title: "⭐ Favorite Artwork"
+    sensor: sensor.frame_art_favorites_gallery
+    columns: 4
+    image_height: 160px
+    gap: 10px
+    border_radius: 12px
+    show_filename: true
+    tap_action: action
+    action:
+      service: samsungtv_smart.art_select_image
+      target:
+        entity_id: media_player.samsung_frame_tv
+      data:
+        content_id: "{{content_id}}"
+        show: true
+
+  # ============================================
+  # THUMBNAIL MANAGEMENT
+  # ============================================
+  
+  - type: entities
+    title: Thumbnail Management
+    entities:
+      - entity: sensor.www_frame_art_personal
+        name: Personal Photos Downloaded
+        icon: mdi:folder-image
+      
+      - entity: sensor.www_frame_art_store
+        name: Art Store Images Downloaded
+        icon: mdi:folder-image
+      
+      - type: button
+        name: Download All Thumbnails
+        icon: mdi:download
+        action_name: Download
+        tap_action:
+          action: call-service
+          service: script.frame_art_download_all
+      
+      - type: button
+        name: Download Personal Only
+        icon: mdi:account-image
+        action_name: Download
+        tap_action:
+          action: call-service
+          service: script.frame_art_download_personal
+      
+      - type: button
+        name: Download Favorites
+        icon: mdi:star-box
+        action_name: Download
+        tap_action:
+          action: call-service
+          service: script.frame_art_download_favorites
+
+# ============================================
+# ALTERNATIVE: COMPACT MOBILE LAYOUT
+# ============================================
+# Uncomment for mobile-optimized view
+
+# - type: vertical-stack
+#   cards:
+#     # Quick brightness controls
+#     - type: horizontal-stack
+#       cards:
+#         - type: button
+#           name: Bright
+#           icon: mdi:brightness-7
+#           tap_action:
+#             action: call-service
+#             service: samsungtv_smart.art_set_brightness
+#             target:
+#               entity_id: media_player.samsung_frame_tv
+#             data:
+#               brightness: 80
+#         
+#         - type: button
+#           name: Dim
+#           icon: mdi:brightness-4
+#           tap_action:
+#             action: call-service
+#             service: samsungtv_smart.art_set_brightness
+#             target:
+#               entity_id: media_player.samsung_frame_tv
+#             data:
+#               brightness: 30
+#     
+#     # 2-column gallery for mobile
+#     - type: custom:folder-gallery-card
+#       title: "📱 Favorites"
+#       sensor: sensor.frame_art_favorites_gallery
+#       columns: 2
+#       image_height: 200px
+#       gap: 8px
+#       tap_action: action
+#       action:
+#         service: samsungtv_smart.art_select_image
+#         target:
+#           entity_id: media_player.samsung_frame_tv
+#         data:
+#           content_id: "{{content_id}}"
+
+# ============================================
+# ALTERNATIVE: LARGE THUMBNAILS VIEW
+# ============================================
+# Uncomment for larger, more detailed view
+
+# - type: custom:folder-gallery-card
+#   title: "🖼️ Large View Gallery"
+#   sensor: sensor.frame_art_personal_gallery
+#   columns: 2
+#   image_height: 300px
+#   gap: 15px
+#   border_radius: 15px
+#   show_filename: true
+#   tap_action: lightbox
+#   hold_action:
+#     service: samsungtv_smart.art_select_image
+#     target:
+#       entity_id: media_player.samsung_frame_tv
+#     data:
+#       content_id: "{{content_id}}"
+
+# ============================================
+# ALTERNATIVE: COMPACT GRID VIEW
+# ============================================
+# Uncomment for more images on screen
+
+# - type: custom:folder-gallery-card
+#   title: "📦 Compact View"
+#   sensor: sensor.frame_art_store_gallery
+#   columns: 6
+#   image_height: 120px
+#   gap: 5px
+#   border_radius: 8px
+#   show_filename: false
+#   tap_action: action
+#   action:
+#     service: samsungtv_smart.art_select_image
+#     target:
+#       entity_id: media_player.samsung_frame_tv
+#     data:
+#       content_id: "{{content_id}}"
+
+# ============================================
+# TIPS
+# ============================================
+#
+# 1. LIGHTBOX vs DIRECT ACTION
+#    - tap_action: lightbox = click opens full screen
+#    - tap_action: action = click displays on TV
+#    - Use hold_action for secondary action
+#
+# 2. COLUMNS
+#    - Desktop: 4-5 columns
+#    - Tablet: 3-4 columns
+#    - Mobile: 2 columns
+#
+# 3. IMAGE HEIGHT
+#    - Small: 120px
+#    - Medium: 150-180px
+#    - Large: 200-300px
+#
+# 4. PERFORMANCE
+#    - folder-gallery-card is faster than auto-entities
+#    - Use sensor instead of folder for dynamic updates
+#    - Thumbnails are automatically cached by browser
+#
+# ============================================

@@ -1,0 +1,187 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Cette télévision Samsung est déjà configurée.",
+      "already_in_progress": "La configuration de la télévision Samsung est déjà en cours.",
+      "host_unique_id": "Reconfiguration impossible car le nom d'hôte est utilisé comme identifiant unique. Veuillez supprimer cette entrée et en créer une nouvelle.",
+      "reconfigure_successful": "Reconfiguration de la télévision Samsung terminée avec succès.",
+      "unsupported_version": "Cette intégration nécessite au moins Home Assistant version {req_ver}, vous utilisez la version {run_ver}.",
+      "oauth_failed": "L'authentification OAuth a échoué. Veuillez réessayer.",
+      "oauth_not_configured": "OAuth2 n'est pas configuré.\n\nVeuillez ajouter les identifiants SmartThings dans :\n**Paramètres → Appareils & Services → Identifiants d'application**",
+      "no_smartthings_integration": "Aucune intégration SmartThings trouvée. Veuillez d'abord configurer SmartThings ou utiliser une autre méthode d'authentification.",
+      "missing_scopes": "Les permissions accordées sont insuffisantes. Veuillez vous assurer d'accorder toutes les permissions demandées.",
+      "reauth_account_mismatch": "Le compte utilisé pour la ré-authentification ne correspond pas au compte d'origine.",
+      "reauth_successful": "Ré-authentification réussie.",
+      "reauth_failed": "Échec de la ré-authentification."
+    },
+    "error": {
+      "auth_missing": "Home Assistant n'est pas autorisé à se connecter à cette télévision Samsung. Vérifiez les paramètres de votre TV pour autoriser Home Assistant.",
+      "invalid_host": "Impossible de se connecter à la TV. Vérifiez l'adresse IP et assurez-vous que la TV est allumée.",
+      "not_successful": "Impossible de créer une connexion WebSocket avec cette télévision Samsung.",
+      "not_supported": "Ce modèle de télévision Samsung n'est pas pris en charge.",
+      "only_key_or_st": "Indiquez uniquement un token d'accès personnel OU une entrée SmartThings, pas les deux.",
+      "st_api_key_fail": "Impossible de récupérer le token d'accès depuis l'intégration SmartThings.",
+      "st_device_not_found": "Aucune TV Samsung trouvée avec cet identifiant SmartThings.",
+      "st_device_used": "Cet appareil SmartThings est déjà configuré.",
+      "wrong_api_key": "Le token SmartThings est invalide. Veuillez vérifier et réessayer."
+    },
+    "flow_title": "SamsungTV Smart : {model}",
+    "step": {
+      "user": {
+        "title": "SamsungTV Smart - Authentification",
+        "description": "Choisissez comment vous authentifier avec SmartThings.\n\nStatut OAuth : {oauth_status}",
+        "data": {
+          "auth_method": "Méthode d'authentification"
+        }
+      },
+      "pick_implementation": {
+        "title": "Connexion avec Samsung",
+        "description": "Sélectionnez votre compte SmartThings pour vous authentifier."
+      },
+      "host": {
+        "title": "Configurer la TV",
+        "description": "Entrez l'adresse IP de votre télévision Samsung et un nom pour l'appareil.",
+        "data": {
+          "host": "Adresse IP de la TV",
+          "name": "Nom de l'appareil",
+          "use_ha_name_for_ws": "Utiliser le nom de l'instance Home Assistant pour l'identification WebSocket"
+        }
+      },
+      "manual": {
+        "title": "Configuration manuelle",
+        "description": "Entrez l'adresse IP de votre TV et vos identifiants SmartThings.\n\nPour créer un token d'accès personnel, rendez-vous sur https://account.smartthings.com/tokens",
+        "data": {
+          "host": "Adresse IP de la TV",
+          "name": "Nom de l'appareil",
+          "use_ha_name_for_ws": "Utiliser le nom de l'instance Home Assistant pour l'identification WebSocket",
+          "api_key": "Token d'accès personnel SmartThings (PAT)",
+          "st_entry_unique_id": "Ou utiliser le token de l'intégration SmartThings"
+        }
+      },
+      "st_integration": {
+        "title": "Utiliser l'intégration SmartThings",
+        "description": "Réutiliser l'authentification de votre intégration SmartThings existante.",
+        "data": {
+          "st_entry": "Intégration SmartThings",
+          "host": "Adresse IP de la TV",
+          "name": "Nom de l'appareil"
+        }
+      },
+      "confirm": {
+        "description": "Voulez-vous configurer la télévision Samsung {model} ? Si vous n'avez jamais connecté Home Assistant auparavant, une fenêtre apparaîtra sur votre TV pour demander une autorisation."
+      },
+      "stdevice": {
+        "title": "Sélectionner l'appareil SmartThings",
+        "description": "Plusieurs TV Samsung ont été trouvées. Veuillez sélectionner votre TV :",
+        "data": {
+          "st_devices": "Télévision Samsung"
+        }
+      },
+      "stdeviceid": {
+        "title": "Identifiant SmartThings",
+        "description": "Aucune TV trouvée automatiquement. Veuillez entrer l'identifiant SmartThings manuellement.\n\nVous pouvez le trouver dans l'application SmartThings ou sur le portail développeur.",
+        "data": {
+          "device_id": "Identifiant SmartThings"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigurer la télévision Samsung",
+        "description": "Mettre à jour la configuration de la TV.\n\nAuthentification actuelle : {current_auth}",
+        "data": {
+          "host": "Adresse IP de la TV",
+          "reauth_oauth": "🔐 (Re-)authentifier avec OAuth2",
+          "st_entry_unique_id": "Intégration SmartThings",
+          "api_key": "Token d'accès personnel SmartThings (PAT)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Ré-authentification requise",
+        "description": "Votre authentification SmartThings a expiré. Cliquez sur Soumettre pour vous reconnecter."
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options SamsungTV Smart",
+        "data": {
+          "logo_option": "Style de logo",
+          "use_local_logo": "Utiliser le cache de logos locaux",
+          "app_load_method": "Mode de chargement des applications",
+          "use_st_status_info": "Utiliser SmartThings pour le statut",
+          "use_st_channel_info": "Utiliser SmartThings pour les chaînes",
+          "show_channel_number": "Afficher le numéro de chaîne",
+          "power_on_method": "Méthode d'allumage",
+          "show_adv_opt": "Afficher les options avancées"
+        }
+      },
+      "menu": {
+        "title": "Menu de configuration",
+        "menu_options": {
+          "source_list": "Configurer les sources",
+          "app_list": "Configurer les applications",
+          "channel_list": "Configurer les chaînes",
+          "sync_ent": "Entités synchronisées",
+          "init": "Options de base",
+          "adv_opt": "Options avancées",
+          "save_exit": "Enregistrer et quitter"
+        }
+      },
+      "source_list": {
+        "title": "Configurer les sources",
+        "description": "Définir les sources personnalisées (paires nom : commande).",
+        "data": {
+          "source_list": "Liste des sources"
+        }
+      },
+      "app_list": {
+        "title": "Configurer les applications",
+        "description": "Définir les applications personnalisées (paires nom : app_id).",
+        "data": {
+          "app_list": "Liste des applications"
+        }
+      },
+      "channel_list": {
+        "title": "Configurer les chaînes",
+        "description": "Définir les chaînes favorites (paires nom : numéro).",
+        "data": {
+          "channel_list": "Liste des chaînes"
+        }
+      },
+      "sync_ent": {
+        "title": "Entités synchronisées",
+        "description": "Sélectionner les entités à synchroniser avec l'état d'alimentation de la TV.",
+        "data": {
+          "sync_turn_off": "Éteindre avec la TV",
+          "sync_turn_on": "Allumer avec la TV"
+        }
+      },
+      "adv_opt": {
+        "title": "Options avancées",
+        "data": {
+          "app_launch_method": "Méthode de lancement des applications",
+          "wol_repeat": "Nombre d'envois du paquet Wake-on-LAN",
+          "ping_port": "Port ping (0 = automatique)",
+          "ext_power_entity": "Entité d'alimentation externe",
+          "use_mute_check": "Utiliser l'état muet pour détecter l'alimentation",
+          "dump_apps": "Debug : exporter la liste des applications",
+          "toggle_art_mode": "Bouton d'alimentation bascule vers le mode Art"
+        }
+      },
+      "save_exit": {
+        "title": "Enregistrer la configuration"
+      }
+    },
+    "error": {
+      "invalid_tv_list": "Format invalide. Veuillez utiliser le format JSON valide."
+    }
+  },
+  "application_credentials": {
+    "description": "Pour utiliser l'authentification OAuth2 avec SamsungTV Smart, vous devez créer des identifiants développeur SmartThings.\n\n**Instructions de configuration :**\n\n1. Installez le [SmartThings CLI](https://github.com/SmartThingsCommunity/smartthings-cli)\n2. Exécutez `smartthings apps:create` et suivez les instructions :\n   - Nom d'affichage : `Home Assistant Samsung TV`\n   - URI de redirection : `{callback_url}`\n   - Portées : `r:devices:*` et `x:devices:*`\n3. Copiez le **OAuth Client Id** et le **Client Secret** ci-dessous\n\n⚠️ Utilisez le **OAuth Client Id**, PAS l'App Id !"
+  },
+  "exceptions": {
+    "oauth2_implementation_unavailable": {
+      "message": "Les identifiants OAuth2 ne sont pas configurés. Veuillez les ajouter dans Paramètres → Appareils & Services → Identifiants d'application."
+    }
+  }
+}

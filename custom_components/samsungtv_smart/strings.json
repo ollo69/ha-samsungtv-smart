@@ -3,13 +3,9 @@
     "step": {
       "user": {
         "title": "Samsung TV Smart - Authentication",
-        "description": "Insira as informações da sua TV Samsung.O token SmartThings é opcional, mas muito sugerido.\nDepois de confirmar os dados, verá um pop-up na TV solicitando uma autorização.",
+        "description": "Choose how to authenticate with SmartThings.\n\nOAuth Status: {oauth_status}",
         "data": {
-          "auth_method": "Authentication Method",
-          "host": "Host ou endereço IP",
-          "name": "Nome atribuído à entidade",
-          "use_ha_name_for_ws": "Use o nome da instância do HA para a identificação na TV",
-          "api_key": "Token gerado pelo SmartThings (opcional)"
+          "auth_method": "Authentication Method"
         }
       },
       "pick_implementation": {
@@ -47,16 +43,16 @@
       },
       "stdevice": {
         "title": "Select SmartThings Device",
-        "description": "Você tem várias TVs configuradas em sua conta. Selecione a TV que você está configurando na lista.",
+        "description": "Multiple Samsung TVs found. Please select your TV:",
         "data": {
-          "st_devices": "SmartThings TV"
+          "st_devices": "Samsung TV"
         }
       },
       "stdeviceid": {
         "title": "SmartThings Device ID",
-        "description": "Falha na detecção automática de ID do SmartThings. Para continuar você deve identificar o ID no site SmartThings (ver documentação) e inseri-lo aqui.",
+        "description": "No TV found automatically. Please enter the SmartThings Device ID manually.\n\nYou can find this in the SmartThings app or developer portal.",
         "data": {
-          "device_id": "ID de TV SmartThings"
+          "device_id": "SmartThings Device ID"
         }
       },
       "reconfigure": {
@@ -72,25 +68,20 @@
       "reauth_confirm": {
         "title": "Re-authentication Required",
         "description": "Your SmartThings authentication has expired. Click Submit to sign in again."
-      },
-      "confirm": {
-        "description": "Deseja configurar a TV Samsung {model}? Se você nunca conectou o Home Assistant antes, verá um pop-up na TV solicitando uma autorização. As configurações manuais para esta TV serão substituídas."
       }
     },
     "error": {
-      "invalid_host": "Host inválido.",
+      "invalid_host": "Unable to connect to the TV. Check the IP address and ensure the TV is on.",
       "only_key_or_st": "Please provide either a Personal Access Token OR select a SmartThings integration, not both.",
       "st_api_key_fail": "Could not retrieve the API key from the SmartThings integration.",
-      "wrong_api_key": "Token errado do SmartThings.",
-      "st_device_not_found": "ID de TV SmartThings não encontrado.",
-      "st_device_used": "ID de TV SmartThings já está em uso.",
-      "not_successful": "Não é possível criar uma conexão WebSocket com essa TV Samsung.",
-      "auth_missing": "O Home Assistant não está autorizado a se conectar a essa TV Samsung. Verifique as configurações da sua TV para autorizar o Home Assistant.",
-      "not_supported": "Essa TV Samsung não é compatível no momento."
+      "wrong_api_key": "The SmartThings token is invalid. Please check and try again.",
+      "st_device_not_found": "No Samsung TV found with this SmartThings Device ID.",
+      "st_device_used": "This SmartThings device is already configured.",
+      "not_successful": "Could not connect to the TV. Ensure it's on and allow the connection when prompted."
     },
     "abort": {
-      "already_configured": "Essa TV Samsung já está configurada.",
-      "unsupported_version": "Esta integração requer pelo menos a versão do HomeAssistant {req_ver}, você está executando a versão {run_ver}.",
+      "already_configured": "This TV is already configured.",
+      "unsupported_version": "This integration requires Home Assistant {req_ver} or later. You are running {run_ver}.",
       "host_unique_id": "Cannot reconfigure: The TV's unique ID is based on the host address.",
       "oauth_failed": "OAuth authentication failed. Please try again.",
       "oauth_not_configured": "OAuth2 is not configured.\n\nPlease add SmartThings credentials in:\n**Settings → Devices & Services → Application Credentials**",
@@ -98,27 +89,25 @@
       "missing_scopes": "The granted permissions are insufficient. Please ensure you grant all requested permissions.",
       "reauth_account_mismatch": "The account used for re-authentication doesn't match the original account.",
       "reauth_successful": "Re-authentication successful.",
-      "reauth_failed": "Re-authentication failed.",
-      "already_in_progress": "A configuração da TV Samsung já está em andamento."
+      "reauth_failed": "Re-authentication failed."
     },
     "create_entry": {
       "default": "Successfully configured {name}"
-    },
-    "flow_title": "SamsungTV Smart: {model}"
+    }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Opções SamsungTV Smart",
+        "title": "Samsung TV Smart Options",
         "data": {
-          "logo_option": "Exiba uma logo para fontes, aplicativos e canais conhecidos",
-          "use_local_logo": "Permitir o uso de imagens de logotipos locais",
-          "app_load_method": "Modo de carregamento da lista de aplicativos na inicialização",
-          "use_st_status_info": "Use as informações de status da TV SmartThings",
-          "use_st_channel_info": "Use as informações dos canais de TV SmartThings",
-          "show_channel_number": "Use as informações de número dos canais de TV SmartThings",
-          "power_on_method": "Método usado para ligar a TV",
-          "show_adv_opt": "Mostrar menu opções"
+          "logo_option": "Logo Style",
+          "use_local_logo": "Use Local Logo Cache",
+          "app_load_method": "Application Load Method",
+          "use_st_status_info": "Use SmartThings for Status",
+          "use_st_channel_info": "Use SmartThings for Channel Info",
+          "show_channel_number": "Show Channel Number",
+          "power_on_method": "Power On Method",
+          "show_adv_opt": "Show Advanced Options"
         }
       },
       "menu": {
@@ -155,24 +144,23 @@
         }
       },
       "sync_ent": {
-        "title": "SamsungTV Smart synched entities",
+        "title": "Synchronized Entities",
         "description": "Select entities to synchronize with TV power state.",
         "data": {
-          "sync_turn_off": "Lista de entidades para desligar com a TV",
-          "sync_turn_on": "Lista de entidades para ligar com a TV"
+          "sync_turn_off": "Turn off with TV",
+          "sync_turn_on": "Turn on with TV"
         }
       },
       "adv_opt": {
-        "title": "Opções avançadas SamsungTV Smart",
+        "title": "Advanced Options",
         "data": {
-          "app_launch_method": "Método usado na inicialização de aplicativos",
-          "wol_repeat": "Número de tempo que o pacote WOL é enviado para ligar a TV",
-          "ping_port": "Porta TCP usada para verificar o status ligado/desligado (0 para ICMP)",
-          "ext_power_entity": "Binary sensor para ajudar a detectar o status de energia",
-          "use_mute_check": "Use o status de volume mudo para detectar um falso status de LIGADO",
-          "dump_apps": "Despejar a lista de aplicativos no arquivo de log na inicialização (quando possível)",
-          "toggle_art_mode": "Toggle Art Mode on Power",
-          "power_on_delay": "Segundos de delay para o status LIGADO"
+          "app_launch_method": "Application Launch Method",
+          "wol_repeat": "Wake-on-LAN Repeat Count",
+          "ping_port": "Ping Port (0 = auto)",
+          "ext_power_entity": "External Power Entity",
+          "use_mute_check": "Use Mute State for Power Detection",
+          "dump_apps": "Debug: Dump Applications",
+          "toggle_art_mode": "Toggle Art Mode on Power"
         }
       },
       "save_exit": {
