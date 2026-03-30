@@ -169,7 +169,15 @@ class SamsungTVMatteSelectBase(SelectEntity):
         self._attr_options = options
         if self._attr_current_option not in options:
             self._attr_current_option = options[0] if options else None
-        self.async_write_ha_state()
+        # Guard: async_write_ha_state() must not be called before the entity
+        # is fully registered on its platform (self.platform is set by HA
+        # after async_add_entities completes). The background task that calls
+        # set_options() can race against that registration, causing:
+        #   "Entity None ... does not have a platform"
+        # The _attr_* values are already stored, so HA will pick them up
+        # correctly on its first state read; we just skip the explicit push.
+        if self.platform is not None:
+            self.async_write_ha_state()
 
     async def _async_refresh_current(self) -> None:
         """Read current artwork matte from TV and update state."""
