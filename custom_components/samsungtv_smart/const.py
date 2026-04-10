@@ -122,6 +122,10 @@ STD_APP_LIST = {
     #     "st_app_id": "evKhCgZelL.AmazonIgnitionLauncher2",
     #     "logo": "",
     # },  # Prime Video
+    "3201910019365": {
+        "st_app_id": "org.tizen.primevideo",
+        "logo": "primevideo.png",
+    },  # Prime Video (New)
     "3201901017640": {
         "st_app_id": "MCmYXNxgcu.DisneyPlus",
         "logo": "disneyplus.png",
