@@ -29,7 +29,7 @@ class PowerOnMethod(Enum):
 DOMAIN = "samsungtv_smart"
 
 MIN_HA_MAJ_VER = 2025
-MIN_HA_MIN_VER = 6
+MIN_HA_MIN_VER = 7
 __min_ha_version__ = f"{MIN_HA_MAJ_VER}.{MIN_HA_MIN_VER}.0"
 
 DATA_CFG = "cfg"
