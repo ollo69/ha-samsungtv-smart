@@ -70,6 +70,9 @@ There are two ways of doing so:
 connected to the LAN (wired or wireless)**. Stay near to your TV during configuration because probably you will need
 to accept the access request that will prompt on your TV screen.
 
+**Subnet/VLAN**
+Samsung SmartTV does not allow WebSocket connections across different subnets or VLANs. If your TV is not on the same subnet as Home Assistant this will fail. It may be possible to bypass this issue by using IP ***Masqueradin***g or a ***Proxy***.
+
 **Note**: To configure the component for using **SmartThings (strongly suggested)** you need to generate an access
 token as explained in [this guide](https://github.com/ollo69/ha-samsungtv-smart/blob/master/docs/Smartthings.md).
 Also make sure your **TV is logged into your SmartThings account** and **registered in SmartThings phone app** before
