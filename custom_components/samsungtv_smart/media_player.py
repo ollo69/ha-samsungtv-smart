@@ -687,8 +687,11 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
 
         if self._st.source in ["digitalTv", "TV"]:
             cloud_key = "ST_TV"
-        else:
+        elif self._st.source:
             cloud_key = "ST_" + self._st.source
+        else:
+            self._source = self._running_app
+            return self._source
 
         found_source = self._running_app
         for attr, value in self._source_list.items():

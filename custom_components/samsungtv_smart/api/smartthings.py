@@ -516,7 +516,7 @@ class SmartThingsTV:
         self._is_forced_val = False
         self._forced_count = 0
 
-        device_source = dev_data.get("inputSource", {}).get("value", "")
+        device_source = dev_data.get("inputSource", {}).get("value", "") or ""
         device_tv_chan = dev_data.get("tvChannel", {}).get("value", "")
         device_tv_chan_name = dev_data.get("tvChannelName", {}).get("value", "")
 
