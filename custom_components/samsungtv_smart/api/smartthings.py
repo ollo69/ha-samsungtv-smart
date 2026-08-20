@@ -101,6 +101,13 @@ COMMAND_PICTURE_MODE = {
     "capability": "custom.picturemode",
     "command": "setPictureMode",
 }
+COMMAND_HUE_SYNC = {
+    "capability": "samsungvd.lightControl",
+    "command": "setLightControlMode",
+}
+
+HUE_SYNC_MODE_OFF = "TurnOff"
+HUE_SYNC_MODE_ON = "TurnOn"
 
 DIGITAL_TV = "digitalTv"
 
@@ -605,6 +612,11 @@ class SmartThingsTV:
         data_cmd = _command(COMMAND_PICTURE_MODE, [mode])
         await self._async_send_command(data_cmd)
         self._picture_mode = mode
+
+    async def async_set_hue_sync(self, enabled: bool):
+        """Start or stop Philips Hue Sync on the TV."""
+        mode = HUE_SYNC_MODE_ON if enabled else HUE_SYNC_MODE_OFF
+        await self._async_send_command(_command(COMMAND_HUE_SYNC, [mode]))
 
 
 class InvalidSmartThingsSoundMode(RuntimeError):

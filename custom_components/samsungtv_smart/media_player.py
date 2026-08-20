@@ -95,6 +95,8 @@ from .const import (
     MAX_WOL_REPEAT,
     SERVICE_SELECT_PICTURE_MODE,
     SERVICE_SET_ART_MODE,
+    SERVICE_START_HUE_SYNC,
+    SERVICE_STOP_HUE_SYNC,
     SIGNAL_CONFIG_ENTITY,
     STD_APP_LIST,
     WS_PREFIX,
@@ -202,6 +204,16 @@ async def async_setup_entry(
         SERVICE_SET_ART_MODE,
         {},
         "async_set_art_mode",
+    )
+    platform.async_register_entity_service(
+        SERVICE_START_HUE_SYNC,
+        {},
+        "async_start_hue_sync",
+    )
+    platform.async_register_entity_service(
+        SERVICE_STOP_HUE_SYNC,
+        {},
+        "async_stop_hue_sync",
     )
 
 
@@ -1698,6 +1710,18 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
         if not self._st:
             raise NotImplementedError()
         await self._st.async_set_picture_mode(picture_mode)
+
+    async def async_start_hue_sync(self):
+        """Start Philips Hue Sync without opening the TV app."""
+        if not self._st:
+            raise HomeAssistantError("SmartThings is not configured for this TV")
+        await self._st.async_set_hue_sync(True)
+
+    async def async_stop_hue_sync(self):
+        """Stop Philips Hue Sync without opening the TV app."""
+        if not self._st:
+            raise HomeAssistantError("SmartThings is not configured for this TV")
+        await self._st.async_set_hue_sync(False)
 
     async def _async_switch_entity(self, power_on: bool):
         """Switch on/off related configure HA entity."""
