@@ -94,6 +94,8 @@ RESULT_WRONG_APIKEY = "wrong_api_key"
 
 SERVICE_SELECT_PICTURE_MODE = "select_picture_mode"
 SERVICE_SET_ART_MODE = "set_art_mode"
+SERVICE_START_HUE_SYNC = "start_hue_sync"
+SERVICE_STOP_HUE_SYNC = "stop_hue_sync"
 
 SIGNAL_CONFIG_ENTITY = f"{DOMAIN}_config"
 

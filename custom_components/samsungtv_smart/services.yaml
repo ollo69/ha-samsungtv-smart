@@ -31,3 +31,29 @@ set_art_mode:
       selector:
         entity:
           integration: samsungtv_smart
+
+start_hue_sync:
+  name: Start Hue Sync
+  description: Start Philips Hue Sync without opening the app on the TV.
+  fields:
+    entity_id:
+      name: Entity Name
+      description: Name of the target entity
+      required: true
+      example: "media_player.tv"
+      selector:
+        entity:
+          integration: samsungtv_smart
+
+stop_hue_sync:
+  name: Stop Hue Sync
+  description: Stop Philips Hue Sync without opening the app on the TV.
+  fields:
+    entity_id:
+      name: Entity Name
+      description: Name of the target entity
+      required: true
+      example: "media_player.tv"
+      selector:
+        entity:
+          integration: samsungtv_smart
