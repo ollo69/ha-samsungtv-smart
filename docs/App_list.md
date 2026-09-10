@@ -9,7 +9,9 @@ The `app_list` is used to set apps that you have installed on your TV. The app n
 
 An application normally has both a numerical ID and an alphanumerical ID associated with it.
 
-Here are some known lists of app IDs: [List 1](https://github.com/tavicu/homebridge-samsung-tizen/issues/26#issuecomment-447424879), [List 2](https://github.com/Ape/samsungctl/issues/75#issuecomment-404941201)
+Here are some known lists of app IDs: [List 1](https://github.com/tavicu/homebridge-samsung-tizen/issues/26#issuecomment-447424879), [List 2](https://github.com/Ape/samsungctl/issues/75#issuecomment-404941201), [List 3](https://tavicu.github.io/homebridge-samsung-tizen/extra/applications.html), [List 4](https://github.com/blog-razrabotchika/homebridge-samsung-tizen-applications)
+
+Lists 1 and 2 are comments on locked issues, so they can no longer be corrected or added to, and both predate the ID changes that most apps went through in 2020 - an ID taken from them may well answer 404 on a recent TV. Lists 3 and 4 are still maintained.
 
 (Another way of finding the alphanumerical ID is by enabling the [SmartThings API](https://github.com/ollo69/ha-samsungtv-smart/blob/master/docs/Smartthings.md) and running an app on the TV, this will show the alphanumerical ID as `media_title` in the component)
 
