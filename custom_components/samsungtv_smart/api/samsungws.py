@@ -812,7 +812,7 @@ class SamsungTVWS:
                 artmode_status = ArtModeStatus.On
             else:
                 artmode_status = ArtModeStatus.Off
-        elif event == "artmode_status":
+        elif event in ("artmode_status", "get_artmode_status"):
             value = data.get("value", "")
             if value == "on":
                 artmode_status = ArtModeStatus.On

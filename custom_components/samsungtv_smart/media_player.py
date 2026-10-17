@@ -528,7 +528,10 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
             _LOGGER.debug("Checking if TV %s is on using device info", self._host)
             # Ensure we get an updated value
             info = await self._async_load_device_info(force=True)
-            return info is not None and info["device"]["PowerState"] == "on"
+            if info is None or info["device"]["PowerState"] != "on":
+                return False
+            # Frame TVs report PowerState "on" while showing art.
+            return self._ws.artmode_status != ArtModeStatus.On
 
         result = self._ws.is_connected
         if result and self._st:
