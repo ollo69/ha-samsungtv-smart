@@ -810,14 +810,18 @@ class SamsungTVWS:
             status = data.get("status", "")
             if status == "on":
                 artmode_status = ArtModeStatus.On
-            else:
+            elif status == "off":
                 artmode_status = ArtModeStatus.Off
+            else:
+                artmode_status = ArtModeStatus.Unavailable
         elif event == "artmode_status":
             value = data.get("value", "")
             if value == "on":
                 artmode_status = ArtModeStatus.On
-            else:
+            elif value == "off":
                 artmode_status = ArtModeStatus.Off
+            else:
+                artmode_status = ArtModeStatus.Unavailable
         elif event == "go_to_standby":
             artmode_status = ArtModeStatus.Unavailable
         elif event == "wakeup":

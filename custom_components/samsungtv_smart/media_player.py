@@ -46,6 +46,7 @@ from homeassistant.const import (
     SERVICE_TURN_ON,
     STATE_OFF,
     STATE_ON,
+    STATE_UNKNOWN,
 )
 from homeassistant.core import DOMAIN as HA_DOMAIN, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
@@ -1059,8 +1060,11 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
         """Return the optional state attributes."""
         data = {ATTR_IP_ADDRESS: self._host}
         if self._ws.artmode_status != ArtModeStatus.Unsupported:
-            status_on = self._ws.artmode_status == ArtModeStatus.On
-            data.update({ATTR_ART_MODE_STATUS: STATE_ON if status_on else STATE_OFF})
+            status = {
+                ArtModeStatus.On: STATE_ON,
+                ArtModeStatus.Off: STATE_OFF,
+            }.get(self._ws.artmode_status, STATE_UNKNOWN)
+            data.update({ATTR_ART_MODE_STATUS: status})
         if self._st:
             picture_mode = self._st.picture_mode
             picture_mode_list = self._st.picture_mode_list
