@@ -499,6 +499,7 @@ class SamsungTVWS:
         websocket.setdefaulttimeout(self.timeout)
         self._ws_remote = websocket.WebSocketApp(
             url,
+            on_open=self._on_open_remote,
             on_message=self._on_message_remote,
             on_ping=self._on_ping_remote,
         )
@@ -551,6 +552,10 @@ class SamsungTVWS:
             self._start_client(start_all=True)
             if self._status_callback is not None:
                 self._status_callback()
+        elif self._is_auth_pending(response):
+            _LOGGING.info(
+                "Waiting for TV authorization on %s:%s", self.host, self.port
+            )
         elif event == "ed.installedApp.get":
             _LOGGING.debug("Message remote: received installedApp")
             self._handle_installed_app(response)
@@ -1018,6 +1023,40 @@ class SamsungTVWS:
         if self._ws_remote:
             self._ws_remote.close()
 
+    def _channel_register_payload(self) -> str:
+        """Return the TLS pairing register frame."""
+        return json.dumps(
+            {
+                "method": "ms.channel.connect",
+                "params": {
+                    "deviceName": self.name,
+                    "id": gen_uuid(),
+                    "type": "native",
+                    "token": self._get_token() or "",
+                },
+            }
+        )
+
+    @staticmethod
+    def _is_auth_pending(response: dict) -> bool:
+        """Return True when the TV is waiting for the Allow prompt."""
+        event = response.get("event")
+        if event == "ms.channel.unauthorized":
+            return True
+        if event != "ms.error":
+            return False
+        message = (response.get("data") or {}).get("message", "")
+        return message in ("No Authorized", "Unauthorized")
+
+    def _on_open_remote(self, ws_app):
+        """Send the TLS register frame once the remote socket is up."""
+        if not self._is_ssl_connection():
+            return
+        try:
+            ws_app.send(self._channel_register_payload())
+        except Exception as ex:  # pylint: disable=broad-except
+            _LOGGING.debug("Failed to send TLS register frame: %s", ex)
+
     def open(self):
         """Open a WS client connection with the TV."""
         if self.connection is not None:
@@ -1029,25 +1068,38 @@ class SamsungTVWS:
 
         _LOGGING.debug("WS url %s", url)
         connection = websocket.create_connection(url, self.timeout, sslopt=sslopt)
+        # Tizen 9 TLS pairing stays open only after this register. Port 8001 still uses the URL alone.
+        if is_ssl:
+            connection.send(self._channel_register_payload())
         completed = False
         response = ""
 
-        for _ in range(3):
-            response = _process_api_response(connection.recv())
-            _LOGGING.debug(response)
-            event = response.get("event", "-")
-            if event != "ms.channel.connect":
+        try:
+            while True:
+                response = _process_api_response(connection.recv())
+                _LOGGING.debug(response)
+                event = response.get("event", "-")
+                if event == "ms.channel.connect":
+                    conn_data = response.get("data")
+                    if not self._check_conn_id(conn_data):
+                        continue
+                    completed = True
+                    token = conn_data.get("token")
+                    if token:
+                        self._set_token(token)
+                    break
+                if is_ssl and self._is_auth_pending(response):
+                    _LOGGING.info(
+                        "Waiting for TV authorization on %s:%s", self.host, self.port
+                    )
+                    continue
                 break
-            conn_data = response.get("data")
-            if self._check_conn_id(conn_data):
-                completed = True
-                token = conn_data.get("token")
-                if token:
-                    self._set_token(token)
-                break
+        except Exception:
+            connection.close()
+            raise
 
         if not completed:
-            self.close()
+            connection.close()
             raise ConnectionFailure(response)
 
         self.connection = connection
