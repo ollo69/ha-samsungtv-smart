@@ -408,6 +408,11 @@ class SamsungTVWS:
                 connection = self._ws_remote
                 using_remote = True
             else:
+                # The cached connection opened by a previous call is never
+                # validated: after the TV goes to standby it is dead, so a
+                # KEY_POWER sent on it is lost and power on fails. Always
+                # open a fresh connection when the remote client is not running.
+                self._close_connection()
                 connection = self.open()
         elif ws_socket:
             connection = ws_socket
@@ -428,6 +433,11 @@ class SamsungTVWS:
             return False
         except websocket.WebSocketTimeoutException:
             _LOGGING.warning("_ws_send: timeout error sending command %s", payload)
+            return False
+        except OSError as exc:
+            _LOGGING.warning("_ws_send: socket error sending command: %s", exc)
+            if not using_remote:
+                self._close_connection()
             return False
 
         if using_remote:
@@ -1052,6 +1062,13 @@ class SamsungTVWS:
 
         self.connection = connection
         return connection
+
+    def _close_connection(self):
+        """Close the cached WS connection, ignoring errors on dead sockets."""
+        try:
+            self.close()
+        except Exception:  # pylint: disable=broad-except
+            self.connection = None
 
     def close(self):
         """Close WS connection."""
