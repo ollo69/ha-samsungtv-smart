@@ -271,7 +271,7 @@ class SamsungTVWS:
         self.connection = None
         self._artmode_status = ArtModeStatus.Unsupported
         self._power_on_requested = False
-        self._power_on_requested_time = datetime.min
+        self._power_on_requested_time = datetime.min.replace(tzinfo=timezone.utc)
         self._power_on_delay = DEFAULT_POWER_ON_DELAY
         self._power_on_artmode = False
 
@@ -282,24 +282,24 @@ class SamsungTVWS:
         self._last_running_scan = aware_utcnow()
         self._app_type = {}
         self._sync_lock = Lock()
-        self._last_app_scan = datetime.min
+        self._last_app_scan = datetime.min.replace(tzinfo=timezone.utc)
 
         self._ping_thread = None
         self._ping_thread_run = False
 
         self._ws_remote = None
         self._client_remote = None
-        self._last_ping = datetime.min
+        self._last_ping = datetime.min.replace(tzinfo=timezone.utc)
         self._is_connected = False
 
         self._ws_control = None
         self._client_control = None
-        self._last_control_ping = datetime.min
+        self._last_control_ping = datetime.min.replace(tzinfo=timezone.utc)
         self._is_control_connected = False
 
         self._ws_art = None
         self._client_art = None
-        self._last_art_ping = datetime.min
+        self._last_art_ping = datetime.min.replace(tzinfo=timezone.utc)
         self._client_art_supported = 2
 
         self._ping = Ping(self.host)
