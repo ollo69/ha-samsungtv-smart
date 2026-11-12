@@ -127,6 +127,8 @@ MEDIA_TYPE_BROWSER = "browser"
 MEDIA_TYPE_KEY = "send_key"
 MEDIA_TYPE_TEXT = "send_text"
 POWER_OFF_DELAY = 20
+POWER_ON_DELAY = 20
+POWER_STATE_TIMEOUT = 2
 ST_APP_SEPARATOR = "/"
 ST_UPDATE_TIMEOUT = 5
 
@@ -275,6 +277,7 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
         # sending the next command to avoid turning the TV back ON).
         self._started_up = False
         self._end_of_power_off = None
+        self._end_of_power_on = None
         self._fake_on = None
         self._delayed_set_source = None
         self._delayed_set_source_time = None
@@ -500,6 +503,24 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
             self._end_of_power_off is not None
             and self._end_of_power_off > dt_util.utcnow()
         )
+
+    def _power_on_in_progress(self):
+        """Check if a power on request is in progress."""
+        return (
+            self._end_of_power_on is not None
+            and self._end_of_power_on > dt_util.utcnow()
+        )
+
+    async def _async_is_power_state_on(self) -> bool:
+        """Check if the TV reports PowerState 'on' using rest api."""
+        if self._get_device_spec("PowerState") is None:
+            return False
+        try:
+            async with asyncio.timeout(POWER_STATE_TIMEOUT):
+                info = await self._async_load_device_info(force=True)
+        except TimeoutError:
+            return False
+        return bool(info) and info.get("device", {}).get("PowerState") == "on"
 
     async def _update_volume_info(self):
         """Update the volume info."""
@@ -866,6 +887,8 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
 
         if self._state == MediaPlayerState.OFF:
             self._end_of_power_off = None
+        else:
+            self._end_of_power_on = None
 
     def send_command(
         self,
@@ -1221,30 +1244,70 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
         if self.state != MediaPlayerState.OFF:
             return False
 
-        result = True
-        if not await self.async_send_command(cmd_power_on):
-            turn_on_method = PowerOnMethod(
-                self._get_option(CONF_POWER_ON_METHOD, PowerOnMethod.WOL.value)
-            )
+        # KEY_POWER is a toggle: sending it again while the TV is still starting
+        # (state is off for some seconds) would turn the TV back off
+        if self._power_on_in_progress():
+            _LOGGER.debug("%s - Power on already in progress", self.entity_id)
+            return True
 
-            if turn_on_method == PowerOnMethod.SmartThings and self._st:
-                await self._st.async_turn_on()
-            else:
-                result = await self.hass.async_add_executor_job(self._send_wol_packet)
+        # Set before any await, so that a concurrent call does not send the command again
+        self._end_of_power_on = dt_util.utcnow() + timedelta(seconds=POWER_ON_DELAY)
+
+        try:
+            # Frame TVs may report PowerState 'on' also in art mode, and with
+            # mute check enabled the reported state is not reliable: skip the check
+            already_on = (
+                self.support_art_mode == ArtModeSupport.UNSUPPORTED
+                and not self._use_mute_check
+                and not self._power_off_in_progress()
+                and await self._async_is_power_state_on()
+            )
+        except asyncio.CancelledError:
+            # Nothing was sent yet
+            self._end_of_power_on = None
+            raise
+
+        if already_on:
+            _LOGGER.debug("%s - TV is already on", self.entity_id)
+            self._end_of_power_on = None
+            self._state = MediaPlayerState.ON
+            return True
+
+        try:
+            result = True
+            if not await self.async_send_command(cmd_power_on):
+                turn_on_method = PowerOnMethod(
+                    self._get_option(CONF_POWER_ON_METHOD, PowerOnMethod.WOL.value)
+                )
+
+                if turn_on_method == PowerOnMethod.SmartThings and self._st:
+                    await self._st.async_turn_on()
+                else:
+                    result = await self.hass.async_add_executor_job(
+                        self._send_wol_packet
+                    )
+        except Exception:
+            self._end_of_power_on = None
+            raise
 
         if result:
+            # Restart the delay now that the command was actually sent
+            self._end_of_power_on = dt_util.utcnow() + timedelta(seconds=POWER_ON_DELAY)
             self._state = MediaPlayerState.OFF
             self._end_of_power_off = None
             self._ws.set_power_on_request(set_art_mode)
+        else:
+            self._end_of_power_on = None
 
         return result
 
     async def _async_turn_on(self, set_art_mode=False):
         """Turn the media player on."""
         self._delayed_set_source = None
+        power_on_in_progress = self._power_on_in_progress()
         if not await self._async_power_on(set_art_mode):
             return False
-        if self._state != MediaPlayerState.OFF:
+        if self._state != MediaPlayerState.OFF or power_on_in_progress:
             return True
 
         await self._async_switch_entity(not set_art_mode)
@@ -1275,15 +1338,18 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
         self._ws.set_power_off_request()
         if self._state == MediaPlayerState.ON:
             if self.support_art_mode == ArtModeSupport.UNSUPPORTED:
-                self.send_command(cmd_power_off)
+                cmd = cmd_power_off
             else:
-                self.send_command(f"{cmd_power_art},3000")
+                cmd = f"{cmd_power_art},3000"
         elif self._ws.artmode_status == ArtModeStatus.On:
-            self.send_command(f"{cmd_power_art},3000")
+            cmd = f"{cmd_power_art},3000"
         else:
             return False
 
+        # Set before sending, so that a concurrent call does not send the command again
         self._end_of_power_off = dt_util.utcnow() + timedelta(seconds=POWER_OFF_DELAY)
+        self._end_of_power_on = None
+        self.send_command(cmd)
 
         return True
 
