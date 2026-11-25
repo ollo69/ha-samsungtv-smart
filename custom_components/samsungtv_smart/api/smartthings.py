@@ -516,7 +516,8 @@ class SmartThingsTV:
         self._is_forced_val = False
         self._forced_count = 0
 
-        device_source = dev_data.get("inputSource", {}).get("value", "")
+        # Some TVs (2025 S95F) report inputSource as null
+        device_source = dev_data.get("inputSource", {}).get("value") or ""
         device_tv_chan = dev_data.get("tvChannel", {}).get("value", "")
         device_tv_chan_name = dev_data.get("tvChannelName", {}).get("value", "")
 
